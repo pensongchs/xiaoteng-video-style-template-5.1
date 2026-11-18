@@ -1,0 +1,11 @@
+node_modules
+out
+检查
+.runtime
+.cache
+public/media/stock/*.mp4
+public/media/stock/*.part
+public/fonts/*
+!public/fonts/README.txt
+public/episode/*
+!public/episode/README.txt

@@ -1,0 +1,56 @@
+# 5.0 新定版（玻璃v6 + 房产MG）· 组件 API
+
+所有尺寸都基于 1920×1080。`r: Rect = {x,y,w,h}` 一律来自 `layouts.ts`。`start` 是入场开始的帧（30fps），`from` 是入场方向：`'up'|'left'|'right'|'scale'|'fade'|'blur'|'none'`。
+
+## 基础
+| 组件 | 用途 | 关键参数 |
+|---|---|---|
+| `Fonts` | 注册阿里巴巴普惠体 Black（标题）、阿里健康体（正文）、Arial Bold（数字） | — |
+| `Backdrop` | 背景（视频或图片）：提亮、压暗、上下渐变压暗；静图会缓慢推近 | `src video blur dark trimStart` |
+| `LiveVideo` / `LiveFrameCtx` | 不受镜头末尾定格影响、一直播放的视频（防顿帧的核心）；素材不够长时按 `ClipRateCtx` 慢放 | `src style trimStart` |
+| `Subtitles` | 烧录字幕（磨砂胶囊 + 当前词高亮），读 episode.json | `ep opts={show,highlight}` |
+| `AnchorCtx` | 本镜动效锚点（帧），版式里用来决定元素入场时刻 | — |
+| `Kicker` | 左上角栏目行（短金线加文字） | `text` |
+| `Headline` | 标题行，`{…}` 部分为金色 | `text start` |
+| `GoldText` | 把行内 `{…}` 渲染成金色 | `text` |
+| `ExampleMark` | 右上角「* 数据为示例」 | — |
+| `GlassCard` | 官方暖雾磨砂卡。正片画面用 `ShotView` 和已登记版式，不要自造深色扁面板来代替 | `r start tone from dim radius pad` |
+| `MediaFrame` | 媒体框（图片或视频），描边在框内侧，可带角标和图注 | `r start src video label tag trimStart from fit soft` |
+| `Chip` | 胶囊标签，有 `gold / glass / coral / green` 四种色调，自动留 25% 余白 | `start tone size` |
+| `Count` | 数字滚动 | `to start dec sep` |
+| `Bar` | 比例条 | `ratio start hi` |
+
+## 官方版式内部组件（不要拿它们另拼一期画面）
+这些组件只给 `ShotView` 里的已登记版式使用。`titleFloat` / `bareNumber` 只在 `matchEpisode()` 选中时出现，不能用来换掉已经匹配到的设计型 MG。
+| 组件 | 视觉 | 关键参数 |
+|---|---|---|
+| `BareNumber` | `bareNumber` 版式里的大数字和单位，可以在 children 里放胶囊 | `r start value unit dec sep label gold size flow` |
+| `FloatLabel` | 悬浮的小标签 | `r start text tone` |
+| `Timeline` | 横向时间轴，焦点高亮 | `r start steps active` |
+| `IconRow` | 编号条目（编号 + 标题 + 说明 + 右侧胶囊），当前行会高亮 | `r start idx title sub tip active` |
+| `QuoteBlock` | 引号大字观点 | `r start text sub` |
+| `SoftCallout` | 半透明提示条（金色或珊瑚色），宽度贴合内容 | `r start text tone icon h` |
+| `ProgressRing` | 圆环比例 | `cx cy size start ratio label value` |
+| `ArrowConnector` | 连接箭头（只需要和两边保持 24px） | `x y w start` |
+| `HighlightBar` | 竖向高亮条 | `x y h start` |
+| `UnderlineDraw` | 金线从左往右划出 | `x y w start` |
+| `SplitType` | 两行对比大字 | `r start line1 line2 sub` |
+| `StatPill` | 数据胶囊卡（键、数字、说明） | `r start k value unit dec sep s hi` |
+
+## 检查标记（DOM 检查依赖这些属性，新写组件时也要加）
+- `data-role="body"`：正文或说明文字，字号必须 ≥34。
+- `data-fit="名字"` 加子元素 `data-fit-text`：容器里的文字宽度不能超过容器的 75%。
+- `data-deco`：纯装饰的字形（例如大引号），不做版式区检查。
+
+## 令牌（tokens.ts）
+- 颜色：墨黑 `#121110`、暖白 `#F4EEE4`、金 `#D9B26F` / 高光 `#F3D79E`、珊瑚 `#E0715C`（风险）、绿 `#8DB89A`（利好）。
+- 字号：kicker 30、title 80、heroTitle 92、number 150、quote 60、rowTitle 40、body 34、label 28、chip 28、ringValue 52。
+- 动效（帧）：enter16 / shaped18 / soft20 / chip12、stagger5、count32、focus12、freeze 30。标签下限 28，房间名 30。
+- 转场（transitions.tsx）：softPush18 → softZoom16 → driftDissolve16 → liftReveal18（无扫光/过冲），按顺序轮换。
+
+## 暖雾磨砂（GLASS_V6）
+- 唯一来源仍是 `tokens.ts: GLASS_V6`。`glassMat()` 负责卡面：卡内 `blur(26px) saturate(1.3) brightness(1.12)`，香槟填充，深墨字。背景组件 `Backdrop` 不使用这段模糊。
+- 五种色调用 `fogFill(tone)`：champ / paper / navy / tea / clay。一帧最多两种。
+- 入场 `glassEnter(frame, start, 'shaped')` 给异形卡，18 帧 quint，到位后为 1。`Sheen` 返回 null，`bump` 返回 0。
+
+默认/存档清单和轮换以版式目录.md与layouts.ts为准；不把兼容API当作旧视觉开关。

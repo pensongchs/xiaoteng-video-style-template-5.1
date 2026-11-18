@@ -1,0 +1,15 @@
+node_modules/
+out/
+检查/
+.runtime/
+.cache/
+dist/
+build/
+episodes_work/
+outputs/
+.DS_Store
+*.log
+*.ttf
+*.otf
+*.woff
+*.woff2

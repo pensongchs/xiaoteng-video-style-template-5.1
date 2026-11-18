@@ -1,0 +1,4 @@
+interface:
+  display_name: "小滕视频风格模板5.1"
+  short_description: "制作小滕5.1风格片头、正片或整片（墨蓝电光、小卡组合、冰蓝字幕）"
+  default_prompt: "使用 $xiaoteng-video-style-template-5-1。先完整阅读仓库根目录 AGENTS.md 与 previews/current 样张，按本期文案、素材和范围制作视频。必须使用已登记版式和 tokens.ts / subtitle-tokens.ts，禁止手写颜色或覆盖令牌；渲染前必须 npm run verify 通过；先提交片头预览和正片审看，用户批准后再导出成片。"

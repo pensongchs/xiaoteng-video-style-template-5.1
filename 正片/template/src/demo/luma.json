@@ -1,0 +1,50 @@
+{
+  "media/gen/yl_lowdensity.jpg": {
+    "luma": 0.255,
+    "p90": 0.651
+  },
+  "media/gen/yl_dark.jpg": {
+    "luma": 0.035,
+    "p90": 0.107
+  },
+  "media/gen/west_sun.jpg": {
+    "luma": 0.203,
+    "p90": 0.609
+  },
+  "media/gen/yl_roof.jpg": {
+    "luma": 0.196,
+    "p90": 0.337
+  },
+  "media/gen/clean_complex.jpg": {
+    "luma": 0.186,
+    "p90": 0.485
+  },
+  "media/gen/yl_terrace.jpg": {
+    "luma": 0.321,
+    "p90": 0.69
+  },
+  "media/gen/water_stain.jpg": {
+    "luma": 0.285,
+    "p90": 0.453
+  },
+  "media/gen/yl_inspect.jpg": {
+    "luma": 0.325,
+    "p90": 0.684
+  },
+  "media/gen/main_road.jpg": {
+    "luma": 0.256,
+    "p90": 0.727
+  },
+  "media/gen/outro_windows.jpg": {
+    "luma": 0.016,
+    "p90": 0.028
+  },
+  "media/gen/waterfront_dusk.jpg": {
+    "luma": 0.117,
+    "p90": 0.292
+  },
+  "media/gen/interior_warm.jpg": {
+    "luma": 0.083,
+    "p90": 0.237
+  }
+}

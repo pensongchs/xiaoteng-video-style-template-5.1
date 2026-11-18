@@ -1,0 +1,20 @@
+{
+  "revision": "5.0-2026-11-16",
+  "files": [
+    {
+      "target": "public/fonts/AlibabaHealth-Bold.ttf",
+      "url": "https://raw.githubusercontent.com/pensongchs/xiaoteng-video-style-template-5.0/e33b7f0898d28b502e68fa291c2378a6cf7dcdf5/片头/assets/workspace/public/fonts/AlibabaHealth-Bold.ttf",
+      "sha256": "96178b55ee17b1d0f498866c86d4231cd740b2a9752af8e6aaf4bc626ff97bcb"
+    },
+    {
+      "target": "public/fonts/JiangChengLvDongSong.ttf",
+      "url": "https://raw.githubusercontent.com/pensongchs/xiaoteng-video-style-template-5.0/e33b7f0898d28b502e68fa291c2378a6cf7dcdf5/片头/assets/workspace/public/fonts/JiangChengLvDongSong.ttf",
+      "sha256": "1a5ebfbd5908b94558c1067e1656b6509f4c04c06bf4a4615d3ad3b5c68eadcb"
+    },
+    {
+      "target": "public/fonts/AlibabaHealth-Regular.ttf",
+      "url": "https://raw.githubusercontent.com/pensongchs/xiaoteng-video-style-template-5.0/e33b7f0898d28b502e68fa291c2378a6cf7dcdf5/片头/assets/workspace/public/fonts/AlibabaHealth-Regular.ttf",
+      "sha256": "f912d45485197d2e276acef24c88d9923e0edfbda78bfcbe8e4198cf65702f11"
+    }
+  ]
+}
