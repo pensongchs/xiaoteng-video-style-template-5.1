@@ -2,12 +2,26 @@
 //   npm run verify
 //   npm run verify -- --dom    另做小卡组合 +（可选）本期 DOM 检查
 import {spawnSync} from 'node:child_process';
+import {readFileSync, existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {ensurePreviewAudio} from './preview-audio.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 process.chdir(root);
 ensurePreviewAudio(root);
+
+// 未配置真实镜头时明确阻断，避免样例与本期口播混用。
+const episode = JSON.parse(readFileSync('src/demo/episode.json', 'utf8'));
+const plan = existsSync('episode-plan.json') ? JSON.parse(readFileSync('episode-plan.json', 'utf8')) : null;
+if (!episode.previewOnly && String(plan?.purpose ?? '').includes('安装样例')) {
+  console.error('✗ 检测到安装示例镜头与真实口播混用：请按本期口播替换 shots.ts 和 episode-plan.json，再重新运行 verify。');
+  process.exit(1);
+}
+const {SHOTS} = await import('../src/demo/shots.ts');
+if (!SHOTS.length) {
+  console.error('✗ 本期镜头表为空：请根据口播与时间码完成选材、正式版式、锚点和 episode-plan.json，然后重新运行 verify。');
+  process.exit(1);
+}
 
 const argv = process.argv.slice(2);
 const steps = [
@@ -35,4 +49,4 @@ if (failed) {
   console.error(`\n✗ verify 未通过（${failed} 项）。渲染结果不能视为有效成片，禁止把失败当成风格已对齐。`);
   process.exit(1);
 }
-console.log('\n✓ verify 通过：指纹、颜色、可读性/字阶、约束、冻结、顺序与连线、镜头结构均符合 5.1.1 输出标准。静态通过不能代替看预览样张与用户批准。');
+console.log('\n✓ verify 通过：指纹、颜色、可读性/字阶、约束、冻结、顺序与连线、镜头结构均符合 5.1.1 输出标准。静态通过不能代替画面检查。');

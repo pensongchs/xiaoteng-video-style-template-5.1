@@ -29,6 +29,8 @@ npm run episode -- 本期名
 
 ## 选版式并填镜头
 
+新工程镜头表为空。根据本期字幕和原声主动完成镜头表、素材和锚点，再执行检查；不要使用安装示例替代本期内容。
+
 阅读 `AGENTS.md` 第 6 节决策表和第 3B 节。编辑：
 
 - `src/demo/shots.ts`：每镜 `layout`、`at`、`anchors`、`bg`、`data`、`title` / `kicker`
@@ -54,12 +56,12 @@ npm run verify -- --dom # 正式交付建议加上；仓库不含 stock，需先
 ## 预览与导出
 
 ```bash
-# 先片头预览，再正片试看，交给用户审看
+# 检查片头预览与正片代表帧
 npm run render -- --comp=Opening --out=out/片头预览.mp4
 npm run stills
 npm run render -- --out=out/正片审看.mp4
 
-# 用户批准后再正式导出
+# 检查通过后正式导出
 npm run render -- --out=out/成片.mp4
 ```
 

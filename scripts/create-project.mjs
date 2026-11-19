@@ -7,6 +7,9 @@ if(target===skill||target.startsWith(skill+sep))throw Error('当期工程须放�
 if(existsSync(join(target,'package.json')))throw Error('已有工程请续接，不覆盖');
 mkdirSync(target,{recursive:true});
 cpSync(join(skill,'正片/template'),target,{recursive:true,filter:p=>!/(^|[\\/])(node_modules|out|检查|\.runtime|dist|build|\.cache)([\\/]|$)/.test(p) && !/public[\\/]episode[\\/].+\.(wav|mp3|m4a|aac|flac|ogg)$/i.test(p)});
+// 新工程从空镜头表开始；版式示例保留在模板预览中，不混入真实口播。
+writeFileSync(join(target,'src/demo/shots.ts'), `import type {Shot} from '../style/types.ts';\nexport const SUBTITLE = {show: true, highlight: true};\nexport const SHOTS: Shot[] = [];\n`);
+writeFileSync(join(target,'episode-plan.json'), JSON.stringify({purpose:'本期镜头表',shots:[]}, null, 2)+'\n');
 writeFileSync(join(target,'制作说明.md'),`# 当期制作（小滕视频风格模板5.1）
 
 先读模板根目录 AGENTS.md 与《模板输出约束标准》。只改文案、素材、时间码、锚点和已登记版式；颜色只用 tokens.ts / subtitle-tokens.ts，禁止手写 CSS 色值。
@@ -16,6 +19,6 @@ writeFileSync(join(target,'制作说明.md'),`# 当期制作（小滕视频风�
 3. 按决策表填写 src/demo/shots.ts 与 episode-plan.json（内容短优先小卡组合）
 4. 按素材规则准备背景视频和生成图
 5. npm run verify 必须通过
-6. 先出片头预览，再出正片全片审看；用户批准后才 npm run render
+6. 检查片头与全片代表帧，通过后直接渲染成片；用户要求先审看时按其要求执行
 `);
 console.log('工程已创建：'+target+'；下一步 npm run setup，阅读 AGENTS.md，填写本期内容后 npm run verify。');
