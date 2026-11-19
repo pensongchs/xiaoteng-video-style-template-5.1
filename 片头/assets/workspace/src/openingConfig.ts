@@ -15,6 +15,15 @@ export const openingConfig={
     "turn": "反而越容易",
     "verdict": "买错？"
   },
+  "vo": {
+    "text": "看房越多，反而越容易买错？",
+    "anchors": {
+      "focus": "越多",
+      "turn": "反而",
+      "verdict": "买错"
+    }
+  },
+  "extra": [],
   "cards": [
     {
       "x": 1194,

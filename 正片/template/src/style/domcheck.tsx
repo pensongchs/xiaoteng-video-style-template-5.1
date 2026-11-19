@@ -1,8 +1,9 @@
 // 渲染期 DOM 检查（仅 --props='{"check":true}' 时启用）：字号下限 / 文字填充率 / 行高 / 溢出 / 文字必须落在版式区内
 import React, {useEffect, useState} from 'react';
 import {continueRender, delayRender} from 'remotion';
-import {CARD_TYPE_SIZES, MIN_FONT, NEAR_BLACK_L, RULE, type CardSize} from './tokens';
+import {CARD_TYPE_SIZES, MIN_FONT, NEAR_BLACK_L, PALETTE, RULE, type CardSize} from './tokens';
 import {BIG_CARD_AREA} from './layouts.ts';
+import {CARD_GUARD, cardContentFaults, fillFault, parseRgba} from './content-guard.ts';
 import type {Rect} from './grid.ts';
 
 const textRects = (root: Element) => {
@@ -67,6 +68,37 @@ export const DomCheck: React.FC<{id: string; zones: Record<string, Rect>}> = ({i
         const cs = getComputedStyle(c); const bf = cs.backdropFilter || (cs as any).webkitBackdropFilter; if (!bf || bf === 'none') return;
         const b = c.getBoundingClientRect(); if (b.width * b.height > BIG_CARD_AREA && !c.querySelector('img,video,canvas,[data-viz],[data-media]')) errs.push(`纯文字大玻璃面板 ${Math.round(b.width)}×${Math.round(b.height)}「${(c.textContent || '').slice(0, 12)}」：大面板必须放图或图表`);
       });
+      // 5.1.2 卡面内容守卫：占位字 / 大圆大卡只有一两个字 / 长条卡内容太少 / 卡太宽太空 / 非墨蓝玻璃色（棕、纯灰、实心）。阈值见 content-guard.ts。
+      {
+        const cands = new Set<Element>(Array.from(document.querySelectorAll('[data-card],[data-mg-card]')));
+        document.querySelectorAll('div').forEach((d) => {
+          if (d.closest('[data-deco]')) return; const bf = getComputedStyle(d).backdropFilter || (getComputedStyle(d) as any).webkitBackdropFilter; if (!bf || bf === 'none') return;
+          const host = d.closest('[data-card],[data-mg-card]'); if (host && host !== d) return; cands.add(d);
+        });
+        const palFills = Object.values(PALETTE.tones).flatMap((t) => [t.fill0, t.fill1]).map((x) => parseRgba(x)!);
+        cands.forEach((el) => {
+          const b = el.getBoundingClientRect(); if (b.width < 40 || b.height < 40) return;
+          const label = `${el.getAttribute('data-card') ? '小卡' : el.getAttribute('data-mg-card') ? `卡${el.getAttribute('data-mg-card')}` : '玻璃面板'} ${Math.round(b.width)}×${Math.round(b.height)}「${(el.textContent || '').trim().slice(0, 10)}」`;
+          // 文字与图标
+          const runs: string[] = []; const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let tn: Node | null; const spans: [number, number][] = [];
+          while ((tn = tw.nextNode())) { const t = tn.textContent?.trim(); if (!t || (tn.parentElement && tn.parentElement.closest('[data-deco],style,script'))) continue; runs.push(t);
+            const r = document.createRange(); r.selectNodeContents(tn); for (const x of Array.from(r.getClientRects())) if (x.width > 0) spans.push([x.left, x.right]); }
+          const vis = Array.from(el.querySelectorAll('img,video,canvas,svg,[data-viz],[data-media]')).filter((v) => { const dc = v.closest('[data-deco]'); if (dc && dc !== v) return false; /* 毛玻璃底下的背景副本（GlassUnderlay）不算卡内图 */ const q = v.getBoundingClientRect(); return q.width >= 24 && q.height >= 24; });
+          vis.forEach((v) => { const q = v.getBoundingClientRect(); spans.push([q.left, q.right]); });
+          const contentW = spans.length ? Math.max(...spans.map((q) => q[1])) - Math.min(...spans.map((q) => q[0])) : 0;
+          const viz = !!el.closest('[data-viz]') || !!el.querySelector('[data-viz]');
+          const rad = (x: Element) => { const q = x.getBoundingClientRect(); const br = getComputedStyle(x).borderTopLeftRadius; const r = br.endsWith('%') ? parseFloat(br) / 100 * Math.min(q.width, q.height) : parseFloat(br) || 0; return {r, w: q.width, h: q.height}; };
+          const circle = [el, ...Array.from(el.children)].some((x) => { const q = rad(x); return q.w >= 100 && Math.abs(q.w - q.h) < 6 && q.r >= Math.min(q.w, q.h) / 2 - 1; });
+          const pill = (() => { const q = rad(el); return q.r >= Math.min(q.w, q.h) / 2 - 1 && !circle; })(); // 全圆角胶囊是标签/结论，不算长条卡
+          cardContentFaults({id: label, w: pill ? 1 : b.width, h: pill ? 1 : b.height, circle, texts: runs, hasVisual: vis.length > 0, contentW, viz}, BIG_CARD_AREA, label).forEach((m) => errs.push(m));
+          // 卡面填充色
+          const surf = [el, ...Array.from(el.querySelectorAll('div'))].filter((x) => { if (x.closest('[data-deco]')) return false; const cs = getComputedStyle(x); const q = x.getBoundingClientRect();
+            return (cs.backgroundImage.includes('gradient') || parseRgba(cs.backgroundColor)?.a! > 0.5) && q.width * q.height >= 0.9 * b.width * b.height; });
+          surf.forEach((x) => { const cs = getComputedStyle(x); const stops = [...(cs.backgroundImage.match(/rgba?\([^)]+\)/g) ?? []), cs.backgroundColor].map((q) => parseRgba(q)).filter((c): c is NonNullable<typeof c> => !!c && c.a >= 0.55);
+            for (const c of stops) { const f = fillFault(c); if (f) errs.push(`${label} ${f}`);
+              else if (!viz && !palFills.some((p) => Math.abs(p.r - c.r) <= 4 && Math.abs(p.g - c.g) <= 4 && Math.abs(p.b - c.b) <= 4 && Math.abs(p.a - c.a) <= 0.05)) errs.push(`${label} 卡面填充 rgba(${c.r},${c.g},${c.b},${c.a}) 不是墨蓝·电光色板里的玻璃色（灰中性/蓝数据/青决策/红风险/紫重点）`); } });
+        });
+      }
       console.log(`CHECK|${id}|${JSON.stringify(errs)}`);
       continueRender(h);
     })();

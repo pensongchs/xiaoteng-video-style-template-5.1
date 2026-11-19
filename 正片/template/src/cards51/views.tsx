@@ -6,6 +6,7 @@ import {layoutRects} from '../style/layouts.ts';
 import {CARD_TYPE, FONT, glassEnter, toneVars, type FogTone} from '../style/tokens';
 import {SEQ, fallbackGap, linkStartAt, linkProgress, settleAt} from '../style/sequence.ts';
 import type {Shot} from '../style/types.ts';
+import {estWidth} from '../style/content-guard.ts';
 import {Tile, Pill, Link, Label, Big, Title, Body, Val, Icon} from './SmallCards';
 
 type At = (key: string, fb: number) => number;
@@ -19,6 +20,8 @@ const hi = (f: number, a: number, b: number) => glassEnter(f, a, 'soft') * (1 - 
 const DataCluster: V = ({s, at, dur}) => {
   const d = s.data, R = layoutRects('dataCluster'), items = (d.items ?? []).slice(0, 3);
   const n = items.length, gap = 24, h = Math.min(124, (R.items.h - gap * (n - 1)) / n), y0 = R.items.y;
+  // 5.1.2：条卡宽度按内容定（原来撑满 6 栏 756px，内容只占 35%）；各行等宽，取最长内容。
+  const iw = Math.min(R.items.w, Math.max(400, Math.ceil((CARD_TYPE.M.icon + 20 + Math.max(...items.map((it: any) => Math.max(estWidth(String(it.v), CARD_TYPE.M.value), estWidth(String(it.k), CARD_TYPE.M.label))))) / 0.62 / 4) * 4));
   const heroAt = at('r0', 8), g = fallbackGap(dur, n + 1, 8), hero = {x: R.hero.x, y: R.hero.y, w: R.hero.w, h: R.hero.h};
   const itemAt = (i: number) => at(`r${i + 1}`, heroAt + g * (i + 1));
   return <>
@@ -30,8 +33,8 @@ const DataCluster: V = ({s, at, dur}) => {
     {items.map((it: any, i: number) => {
       const st = itemAt(i), cy = y0 + i * (h + gap) + h / 2;
       return <React.Fragment key={i}>
-        <Link pts={[[R.hero.x + R.hero.w, R.hero.y + R.hero.h / 2], [R.connLink.x + R.connLink.w / 2, R.hero.y + R.hero.h / 2], [R.connLink.x + R.connLink.w / 2, cy], [R.items.x, cy]]} a={heroAt} b={st} dur={dur} id={`hero>item${i}`} from="hub" to={i} fromKey="r0" toKey={`r${i + 1}`} fromBox={hero} toBox={{x: R.items.x, y: y0 + i * (h + gap), w: R.items.w, h}} />
-        <Tile x={R.items.x} y={y0 + i * (h + gap)} w={R.items.w} h={h} tone={(it.tone ?? ROT[i]) as FogTone} at={st} size="M" from="right">
+        <Link pts={[[R.hero.x + R.hero.w, R.hero.y + R.hero.h / 2], [R.connLink.x + R.connLink.w / 2, R.hero.y + R.hero.h / 2], [R.connLink.x + R.connLink.w / 2, cy], [R.items.x, cy]]} a={heroAt} b={st} dur={dur} id={`hero>item${i}`} from="hub" to={i} fromKey="r0" toKey={`r${i + 1}`} fromBox={hero} toBox={{x: R.items.x, y: y0 + i * (h + gap), w: iw, h}} />
+        <Tile x={R.items.x} y={y0 + i * (h + gap)} w={iw} h={h} tone={(it.tone ?? ROT[i]) as FogTone} at={st} size="M" from="right">
           <div style={{display: 'flex', alignItems: 'center', gap: 20}}><Icon kind={it.icon ?? 'tag'} />
             <div><div data-role="label"><Label dot={false}>{it.k}</Label></div><Val>{it.v}</Val></div></div>
         </Tile></React.Fragment>;
@@ -119,6 +122,8 @@ const RiskGroup: V = ({s, at, dur}) => {
 const NoteGroup: V = ({s, at, dur}) => {
   const d = s.data, R = layoutRects('noteGroup'), notes = (d.notes ?? []).slice(0, 3), q0 = at('r0', 8), g = fallbackGap(dur, notes.length + 1, 8);
   const nh = 110, ng = (R.notes.h - notes.length * nh) / Math.max(1, notes.length - 1), cx = R.connLink.x + R.connLink.w / 2;
+  // 5.1.2：便签宽度按内容定（原来撑满 686px，内容只占 38–44%）；各条等宽，取最长内容。
+  const nw = Math.min(R.notes.w - 70, Math.ceil((CARD_TYPE.S.padX * 2 + Math.max(...notes.map(([k, v]: [string, string]) => estWidth(k, CARD_TYPE.S.title) + 16 + estWidth(v, CARD_TYPE.S.label)))) / 0.65 / 4) * 4);
   return <>
     <Tile x={R.quote.x} y={R.quote.y} w={R.quote.w} h={R.quote.h} tone="champ" at={q0} size="L" from="left">
       {d.quote.label && <div data-role="label"><Label>{d.quote.label}</Label></div>}
@@ -128,8 +133,8 @@ const NoteGroup: V = ({s, at, dur}) => {
     {notes.map(([k, v]: [string, string], i: number) => {
       const y = R.notes.y + i * (nh + ng), x = R.notes.x + (i % 2) * 70, st = at(`r${i + 1}`, q0 + g * (i + 1));
       return <React.Fragment key={i}>
-        <Link pts={[[R.quote.x + R.quote.w, R.quote.y + R.quote.h / 2], [cx, R.quote.y + R.quote.h / 2], [cx, y + nh / 2], [x, y + nh / 2]]} a={q0} b={st} dur={dur} id={`quote>note${i}`} from="hub" to={i} fromKey="r0" toKey={`r${i + 1}`} fromBox={{x: R.quote.x, y: R.quote.y, w: R.quote.w, h: R.quote.h}} toBox={{x, y, w: R.notes.w - 70, h: nh}} />
-        <Tile x={x} y={y} w={R.notes.w - 70} h={nh} tone={(['paper', 'navy', 'tea'][i]) as FogTone} at={st} size="S" from="right">
+        <Link pts={[[R.quote.x + R.quote.w, R.quote.y + R.quote.h / 2], [cx, R.quote.y + R.quote.h / 2], [cx, y + nh / 2], [x, y + nh / 2]]} a={q0} b={st} dur={dur} id={`quote>note${i}`} from="hub" to={i} fromKey="r0" toKey={`r${i + 1}`} fromBox={{x: R.quote.x, y: R.quote.y, w: R.quote.w, h: R.quote.h}} toBox={{x, y, w: nw, h: nh}} />
+        <Tile x={x} y={y} w={nw} h={nh} tone={(['paper', 'navy', 'tea'][i]) as FogTone} at={st} size="S" from="right">
           <div style={{display: 'flex', alignItems: 'baseline', gap: 16}}><Title>{k}</Title><span data-role="label"><Label dot={false}>{v}</Label></span></div>
         </Tile></React.Fragment>;
     })}

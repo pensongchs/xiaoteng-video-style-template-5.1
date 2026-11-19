@@ -31,3 +31,13 @@ export const requiredSeqKeys = (layout: string, data: any = {}, sceneCards = 0):
     default: return [];
   }
 };
+
+/** 画连线的版式及其时序模式（check-sequence 核对：凡是实际画了连线的版式必须登记在此）。
+ *  chain：A→B→C 相邻项 ≥ LINK_GAP（源卡停稳 → 线长 → 目标卡出现）；
+ *  fork：r0 连出 r1.. 多张，r1.. 各 ≥ r0+LINK_GAP；hub：枢纽卡（总卡/中心卡/底图）提前 LINK_GAP 出现（hubAt）。 */
+export const LINK_MODE: Record<string, 'chain' | 'fork' | 'hub'> = {
+  stepRail: 'chain', hexSteps: 'chain', floorLadder: 'chain', timeline: 'chain', qaBubbles: 'chain',
+  decisionFork: 'fork', amenityPins: 'fork', pitfallLens: 'fork', dataCluster: 'fork', noteGroup: 'fork', riskGroup: 'fork', comparePair: 'fork',
+  paymentSplit: 'hub', amenityOrbit: 'hub', loanCurve: 'hub', inspectTags: 'hub', splitVs: 'chain', waitVs: 'chain',
+};
+export const LINKED_LAYOUTS = new Set<string>(Object.keys(LINK_MODE));

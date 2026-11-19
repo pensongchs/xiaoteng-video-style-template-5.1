@@ -3,6 +3,8 @@ import {layoutRects, type LayoutName} from './layouts.ts';
 import {cubic, rectPoly, roundPoly, type Box, type Pt} from './geom.ts';
 import type {FogTone} from './tokens.ts';
 import {PLAN_ASSET} from './floorplans.ts';
+import {estWidth, isPlaceholderText} from './content-guard.ts';
+import {SAFE} from './grid.ts';
 
 export type TextRun = {text: string; size: number; role: 'title' | 'body' | 'label' | 'room' | 'num'; box: Box; align?: 'left' | 'center'};
 export type CardGeom = {id: string; poly: Pt[]; tone: FogTone; texts: TextRun[]; marks?: Box[]; visual?: {kind: string; box: Box; src?:string}};
@@ -58,7 +60,19 @@ export const CURVE_STEPS = [
   {k: '网签', s: '签合同'}, {k: '面签', s: '银行见面'}, {k: '批贷', s: '等审批'}, {k: '抵押登记', s: '办手续'}, {k: '放款', s: '钱到卖方'},
 ];
 
-const scenes: Record<string, () => Scene> = {
+/** 5.1.2：卡内文字按内容定宽（估算字宽 / 0.70 = 文字框宽，保证填充率 ≤ 75%）。 */
+const FILL = 0.70;
+const tx = (d: SceneData | undefined, id: string, i: number, def: string) => d?.sceneText?.[id] ? (d.sceneText[id][i] ?? '') : def;
+/** 文字 → 图标种类（卡里没手填 cardVisual 时按内容猜；猜不到用 search）。 */
+const kindFor = (text: string) => /资金|预算|首付|月供|还贷|贷|融资|费用/.test(text) ? 'wallet' : /进度|工期|节点|工程|流程|步骤|路线/.test(text) ? 'route'
+  : /质量|品质|验收|口碑|安全|保障|保修/.test(text) ? 'shield' : /交付|楼盘|小区|项目|楼栋|物业/.test(text) ? 'building' : /采光|朝向|日照/.test(text) ? 'sun'
+  : /噪|声|空鼓/.test(text) ? 'noise' : /通勤|时间|距离|年限/.test(text) ? 'clock' : /户型/.test(text) ? 'plan' : /限购|资格|合同|材料|认定/.test(text) ? 'lock' : /价格|成交/.test(text) ? 'tag' : 'search';
+const stripW = (title: string, sub: string, tSize: number, sSize: number, icon: number, padX: number, gap: number) => {
+  const boxW = Math.ceil(Math.max(estWidth(title, tSize), estWidth(sub, sSize)) / FILL / 4) * 4;
+  return {boxW, w: padX + icon + gap + boxW + padX};
+};
+
+const scenes: Record<string, (d?: SceneData) => Scene> = {
   ticketStub: () => {
     const r = layoutRects('ticketStub').ticket;
     const stubW = 420;
@@ -75,7 +89,7 @@ const scenes: Record<string, () => Scene> = {
       card('stub', stub, 'clay', [
         T('合计', 28, 'label', box(stub.x + 32, stub.y + 48, stub.w - 64, 36)),
         T('3–5%', 72, 'num', box(stub.x + 24, stub.y + 110, stub.w - 48, 90)),
-        T('示例', 28, 'label', box(stub.x + 32, stub.y + stub.h - 80, stub.w - 64, 36)),
+        T('占总价', 28, 'label', box(stub.x + 32, stub.y + stub.h - 80, stub.w - 64, 36)),
       ]),
     ], lines: []};
   },
@@ -131,7 +145,7 @@ const scenes: Record<string, () => Scene> = {
     return {cards: [
       {id: 'arch', poly: archPoly(box(a.x + 24, arcTop, a.w - 48, a.h - 48)), tone: 'champ', texts: [
         T('5.0小时', 72, 'num', box(a.x + 80, a.y + a.h - 160, a.w - 160, 80)),
-        T('冬至示例', 28, 'label', box(a.x + 80, a.y + a.h - 70, a.w - 160, 36)),
+        T('冬至日照', 28, 'label', box(a.x + 80, a.y + a.h - 70, a.w - 160, 36)),
       ]},
       ...notes.map((b, i) => card('n' + i, b, 'tea', [T(labels[i], 34, 'body', inset(b, 20))])),
     ], lines: []};
@@ -209,13 +223,17 @@ const scenes: Record<string, () => Scene> = {
       ...notes.map((b, i) => card('n' + i, b, 'navy', [T(labels[i], 34, 'body', inset(b, 24))])),
     ], lines: notes.map((b, i) => ({id: 'c' + i, kind: 'connector' as const, width: 4, anchor: 'both' as const, pts: [[doc.x + doc.w + 3, b.y + b.h / 2], [b.x - 3, b.y + b.h / 2]] as Pt[]}))};
   },
-  planSplit: () => {
+  planSplit: (d) => {
     // 5.1.1：大卡 = 户型图素材（图框，见 mgNew.PlanFrame）；文字全部在右侧三张小卡里。
-    const slot = layoutRects('planSplit').stats, h = 140, gap = 24;
-    const rows: [string, string, FogTone][] = [['套内面积', `约 ${PLAN_ASSET.netM2}㎡`, 'navy'], ['南北通透', '采光通风好', 'tea'], ['入户动线', '直通客厅', 'navy']];
-    return {planAsset: PLAN_ASSET.src, cards: rows.map(([k, v, tone], i) => {
-      const b = box(slot.x, slot.y + 24 + i * (h + gap), slot.w, h), s = inset(b, 24);
-      return card('s' + i, b, tone, [T(k, 28, 'label', box(s.x, s.y - 6, s.w, 36)), T(v, 40, 'title', box(s.x, s.y + 34, s.w, 52))]);
+    // 5.1.2：三张小卡按内容定宽（原来撑满 4 栏 496px，内容只占 30%），每张 = 图标 + 标签 + 数值。
+    const slot = layoutRects('planSplit').stats, h = 140, gap = 24, ICON_W = 72, ICON_H = 54, PADX = 28, GAP = 20;
+    const rows: [string, string, FogTone, string][] = [['套内面积', `约 ${PLAN_ASSET.netM2}㎡`, 'navy', 'plan'], ['南北通透', '采光通风好', 'tea', 'sun'], ['入户动线', '直通客厅', 'navy', 'route']];
+    return {planAsset: PLAN_ASSET.src, cards: rows.map(([k0, v0, tone, kind], i) => {
+      const k = tx(d, 's' + i, 0, k0), v = tx(d, 's' + i, 1, v0);
+      const boxW = Math.ceil(Math.max(estWidth(k, 28), estWidth(v, 40)) / FILL / 4) * 4, w = PADX + ICON_W + GAP + boxW + PADX;
+      const b = box(slot.x, slot.y + 24 + i * (h + gap), w, h), t0 = b.x + PADX + ICON_W + GAP;
+      return {...card('s' + i, b, tone, [T(k, 28, 'label', box(t0, b.y + 26, boxW, 36)), T(v, 40, 'title', box(t0, b.y + 68, boxW, 52))]),
+        visual: {kind: d?.cardVisual?.['s' + i] ?? kind, box: box(b.x + PADX, b.y + (h - ICON_H) / 2, ICON_W, ICON_H)}} as CardGeom;
     }), lines: []};
   },
   buildingSection: () => {
@@ -238,17 +256,36 @@ const scenes: Record<string, () => Scene> = {
       pts: [[tower.x + tower.w + 4, b.y + b.h / 2], [b.x - 3, b.y + b.h / 2]] as Pt[],
     }))};
   },
-  pitfallLens: () => {
+  pitfallLens: (d) => {
+    // 5.1.2 重做（原版：大圆只有一行字、三张 480×140 长条只有标题、clay/paper 卡面发棕发灰）。
+    // 现在：枢纽圆 = 图标 + 标题 + 补充行（直径随内容 280–340）；三张条卡 = 图标 + 标题 + 补充行，卡宽按内容定；
+    // 枢纽圆 champ（暮紫·重点）、条卡 navy（墨蓝·数据）；连线从圆边到条卡左边中点，随卡落定后依口播顺序画出。
     const stage = layoutRects('pitfallLens').stage;
-    const cx = stage.x + 460, cy = stage.y + stage.h / 2, rad = 150;
-    const calls = [box(980, 300, 480, 140), box(980, 480, 480, 140), box(980, 660, 480, 140)];
-    const words = ['窗角水渍', '空鼓轻敲', '下水试水'];
-    const poly = circlePoly(cx, cy, rad);
-    return {cards: [
-      {id: 'lens', poly, tone: 'clay', texts: [T('放大看', 34, 'body', box(cx - 70, cy - 24, 140, 48))]},
-      ...calls.map((b, i) => card('c' + i, b, 'paper', [T(words[i], 34, 'body', inset(b, 28))])),
-    ], lines: calls.map((b, i) => {
-      const ty = b.y + b.h / 2;
+    const defs = [['窗角水渍', '看有没有霉点水渍'], ['空鼓轻敲', '听声音是否发空'], ['下水试水', '看排水快不快']];
+    const hubT = tx(d, 'lens', 0, '放大看'), hubS = tx(d, 'lens', 1, '三处细节');
+    const TS = 44, SS = 34, ICON_W = 96, ICON_H = 72, PADX = 32, GAP = 24, H = 164, VGAP = 40, CONN = 200;
+    const rows = defs.map((df, i) => [tx(d, 'c' + i, 0, df[0]), tx(d, 'c' + i, 1, df[1])]);
+    const sz = rows.map(([t, sub]) => stripW(t, sub, TS, SS, ICON_W, PADX, GAP));
+    const hubBox = Math.ceil(Math.max(estWidth(hubT, 40), estWidth(hubS, SS)) / FILL / 4) * 4;
+    const dia = Math.min(340, Math.max(300, Math.ceil(hubBox / 0.82)));
+    const maxW = Math.max(...sz.map((q) => q.w));
+    const groupW = dia + CONN + maxW, left = SAFE.left + Math.round((SAFE.right - SAFE.left - groupW) / 2);
+    const cx = left + dia / 2, cy = stage.y + stage.h / 2, rad = dia / 2, x0 = left + dia + CONN;
+    const y0 = cy - (3 * H + 2 * VGAP) / 2;
+    const poly = circlePoly(cx, cy, rad, 36);
+    const hubKind = (d?.cardVisual?.lens) ?? (d?.sceneText?.lens ? kindFor(hubT) : 'search');
+    const lens: CardGeom = {id: 'lens', poly, tone: 'champ', visual: {kind: hubKind, box: box(cx - 54, cy - 100, 108, 81)}, texts: [
+      T(hubT, 40, 'title', box(cx - hubBox / 2, cy - 12, hubBox, 56), 'center'),
+      T(hubS, SS, 'body', box(cx - hubBox / 2, cy + 46, hubBox, 46), 'center'),
+    ]};
+    const calls = rows.map(([t, sub], i) => {
+      const b = box(x0, y0 + i * (H + VGAP), sz[i].w, H), tx0 = b.x + PADX + ICON_W + GAP;
+      const kind = d?.cardVisual?.['c' + i] ?? (d?.sceneText?.['c' + i] ? kindFor(t + sub) : ['search', 'noise', 'shield'][i]);
+      return {...card('c' + i, b, 'navy', [T(t, TS, 'title', box(tx0, b.y + 22, sz[i].boxW, 60)), T(sub, SS, 'body', box(tx0, b.y + 86, sz[i].boxW, 46))]),
+        visual: {kind, box: box(b.x + PADX, b.y + (H - ICON_H) / 2, ICON_W, ICON_H)}} as CardGeom;
+    });
+    return {cards: [lens, ...calls], lines: calls.map((c, i) => {
+      const b = box(x0, y0 + i * (H + VGAP), sz[i].w, H), ty = b.y + b.h / 2;
       const ang = Math.atan2(ty - cy, (b.x - 3) - cx);
       return {id: 'l' + i, kind: 'connector' as const, width: 4, anchor: 'both' as const, pts: [[cx + Math.cos(ang) * (rad + 3), cy + Math.sin(ang) * (rad + 3)], [b.x - 3, ty]] as Pt[]};
     })};
@@ -321,13 +358,22 @@ const scenes: Record<string, () => Scene> = {
     ], lines: [{id: 'toHouse', kind: 'connector', width: 4, anchor: 'both', color: '#8DB8FF', dot: false,
       pts: cubic(from, c1, c2, to, 4), d: `M ${from[0]} ${from[1]} C ${c1[0]} ${c1[1]}, ${c2[0]} ${c2[1]}, ${to[0]} ${to[1]}`}]};
   },
-  policyNotes: () => {
+  policyNotes: (d) => {
+    // 5.1.2 重做（原版：三张 500×150 灰卡各只有一行字，卡宽与内容不成比例）。现在每张 = 图标 + 标题 + 补充行，卡宽按内容定；navy ×2 + champ（结论）。
     const wall = layoutRects('policyNotes').wall;
-    const notes = [box(wall.x, wall.y + 48, 500, 150), box(wall.x + 534, wall.y + 112, 500, 150), box(wall.x + 180, wall.y + 340, 540, 150)];
-    const words = ['认定看材料', '限购先问清', '资格以当地为准'];
-    return {cards: notes.map((b, i) => card('note' + i, b, i === 2 ? 'navy' : 'paper', [
-      T(words[i], 40, 'title', box(b.x + 36, b.y + 48, b.w - 72, 54), 'center'),
-    ])), lines: []};
+    const defs = [['认定看材料', '看社保和纳税年限'], ['限购先问清', '看套数和区域限制'], ['资格以当地为准', '政策常有调整']];
+    const TS = 44, SS = 34, ICON_W = 88, ICON_H = 66, PADX = 28, GAP = 22, H = 150;
+    const rows = defs.map((df, i) => [tx(d, 'note' + i, 0, df[0]), tx(d, 'note' + i, 1, df[1])]);
+    const sz = rows.map(([t, sub]) => stripW(t, sub, TS, SS, ICON_W, PADX, GAP));
+    const w0 = sz[0].w, w1 = sz[1].w;
+    const left = wall.x + Math.max(0, Math.round((wall.w - (w0 + 48 + w1)) / 2));
+    const pos = [[left, wall.y + 48], [left + w0 + 48, wall.y + 112], [left + Math.round((w0 + 48 + w1 - sz[2].w) / 2), wall.y + 112 + H + 96]];
+    return {cards: rows.map(([t, sub], i) => {
+      const b = box(pos[i][0], pos[i][1], sz[i].w, H), tx0 = b.x + PADX + ICON_W + GAP;
+      const kind = d?.cardVisual?.['note' + i] ?? (d?.sceneText?.['note' + i] ? kindFor(t + sub) : ['plan', 'lock', 'shield'][i]);
+      return {...card('note' + i, b, i === 2 ? 'champ' : 'navy', [T(t, TS, 'title', box(tx0, b.y + 16, sz[i].boxW, 60)), T(sub, SS, 'body', box(tx0, b.y + 80, sz[i].boxW, 46))]),
+        visual: {kind, box: box(b.x + PADX, b.y + (H - ICON_H) / 2, ICON_W, ICON_H)}} as CardGeom;
+    }), lines: []};
   },
   qaBubbles: () => {
     const q = box(120, 286, 500, 220);
@@ -352,12 +398,18 @@ const scenes: Record<string, () => Scene> = {
 
 export type SceneData = {sceneText?:Record<string,string[]>;sceneAlign?:Record<string,'left'|'center'>;sceneTone?:Record<string,FogTone>;cardVisual?:Record<string,string>;cardCutout?:Record<string,string>;cardVisualBox?:Record<string,Box>};
 export const sceneOf = (name: LayoutName | string, data?: SceneData): Scene => {
- const scene=(scenes[name]??scenes.ticketStub)();
+ // 5.1.2：不再静默回退到 ticketStub（那会把别的版式的内容渲染出来）；未知版式直接报错。
+ const build=scenes[name];
+ if(!build)throw new Error(`sceneOf：未知版式「${name}」，没有对应的卡面几何（只能用选卡池里的官方版式）`);
+ const scene=build(data);
  if(!data)return scene;
+ // 5.1.2：sceneText 的卡 id 必须存在（写错 id 会被静默忽略，画面回到样例字）；占位文字（示意/占位/标题/文字/示例/XXX/TODO/lorem…）直接报错。
+ for(const id of Object.keys(data.sceneText??{}))if(!scene.cards.some(c=>c.id===id))throw new Error(`${name} 的 sceneText 里没有卡「${id}」（可用：${scene.cards.map(c=>c.id).join('/')}）`);
+ for(const [id,arr] of Object.entries(data.sceneText??{}))for(const t of arr)if(isPlaceholderText(t))throw new Error(`${name}/${id} 含占位文字「${t}」：卡面必须写真实内容，不允许「示意/占位/标题/文字/示例/XXX/TODO」`);
  return {...scene,cards:scene.cards.map(c=>{
   const xs=c.poly.map(p=>p[0]),ys=c.poly.map(p=>p[1]);const x=Math.min(...xs),y=Math.min(...ys),w=Math.max(...xs)-x,h=Math.max(...ys)-y;
   let texts=c.texts.map((t,i)=>({...t,text:data.sceneText?.[c.id]?.[i]??t.text,align:data.sceneAlign?.[c.id]??t.align}));
-  let visual:CardGeom['visual'];let tone=data.sceneTone?.[c.id]??c.tone;
+  let visual:CardGeom['visual']=c.visual;let tone=data.sceneTone?.[c.id]??c.tone;
   const place=(i:number,xx:number,yy:number,ww:number,hh:number,size:number,align:'left'|'center'='left')=>{if(texts[i])texts[i]={...texts[i],box:box(xx,yy,ww,hh),size,align};};
   if(name==='slashCompare'&&c.id!=='vs'){
    tone=c.id==='L'?'paper':'navy';visual={kind:data.cardVisual?.[c.id]??(c.id==='L'?'search':'cross'),box:box(x+w*.18,y+62,w*.64,240)};

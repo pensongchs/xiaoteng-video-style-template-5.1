@@ -12,6 +12,8 @@ import {PropertyArt} from './illustrations';
 import {PhotoCutout} from './PhotoCutout';
 import {GlassArrow} from './GlassArrow';
 import {connectionProgress} from './connections';
+import {hubAt} from './sequence.ts';
+import {isCirclePoly} from './content-guard.ts';
 
 export type Starts = (i: number) => number;
 const fogStyle = (tone: FogTone): React.CSSProperties => toneMat(tone);
@@ -46,23 +48,26 @@ const CardFace: React.FC<{card: CardGeom; p: number; i: number; yaw: number; sta
   const rect = axisRect(card.poly);
   const clip = `polygon(${card.poly.map((pt) => `${((pt[0] - left) / width) * 100}% ${((pt[1] - top) / height) * 100}%`).join(',')})`;
   const local = card.poly.map((pt) => `${pt[0] - left},${pt[1] - top}`).join(' ');
+  // 5.1.2：圆形卡用真圆角（border-radius:50%）；之前按多边形裁切，外层方形壳的圆角+阴影会在圆后面露出一块方底（「圆后面有个灰方块」）。
+  const circle = !rect && isCirclePoly(card.poly);
   const face: React.CSSProperties = rect
     ? {borderRadius: softRadius(width, height), overflow: 'hidden'}
+    : circle ? {borderRadius: '50%', overflow: 'hidden', boxShadow: FROST.shadow}
     : {clipPath: clip, border: 'none', boxShadow: `inset 0 1.5px 0 ${FROST.top}, inset 0 -14px 20px ${FROST.bottom}`,
       filter: 'drop-shadow(0 12px 12px rgba(16,43,60,0.28))'};
   const ink = FOG[card.tone].ink;
-  return <div data-mg-card={card.id} style={{...(toneVars(card.tone) as any), position: 'absolute', left, top, width, height, overflow: 'visible', borderRadius:36, boxShadow:FROST.shadow, opacity: Math.min(1, p), zIndex: 2 + i,
+  return <div data-mg-card={card.id} style={{...(toneVars(card.tone) as any), position: 'absolute', left, top, width, height, overflow: 'visible', borderRadius: rect ? 36 : circle ? '50%' : 36, boxShadow: rect ? FROST.shadow : 'none', opacity: Math.min(1, p), zIndex: 2 + i,
     transform: `translateY(${(1 - p) * 26}px) translateZ(${liftOf(card.id, i)}px) rotateY(${yaw}deg)`, transformOrigin: '50% 58%', transformStyle: 'preserve-3d'}}>
     <div style={{position: 'absolute', left: width * 0.1, top: height - 8, width: width * 0.8, height: 34, borderRadius: '50%', pointerEvents: 'none',
       background: 'radial-gradient(ellipse at center, rgba(12,39,57,0.30), rgba(12,39,57,0) 70%)', filter: 'blur(6px)'}} />
-    <div style={{position: 'absolute', inset: 0, ...face}}><GlassUnderlay r={{x:left,y:top,w:width,h:height}}/><div style={{position:'absolute',inset:0,...fogStyle(card.tone),borderRadius:'inherit'}}/><GlassEdge radius={36}/>
+    <div style={{position: 'absolute', inset: 0, ...face}}><GlassUnderlay r={{x:left,y:top,w:width,h:height}}/><div style={{position:'absolute',inset:0,...fogStyle(card.tone),borderRadius:'inherit'}}/><GlassEdge radius={circle ? 9999 : 36}/>
       {card.id === 'people' && card.marks?.map((m, k) => <Figure key={k} x={m.x - left} y={m.y - top} w={m.w} h={m.h} color={FIG[k % 4]} />)}
     </div>
     {card.id==='doc'&&<svg data-deco style={{position:'absolute',left:36,top:110,width:width*.48,height:height-150}} viewBox="0 0 300 380">
       {[0,1,2,3,4,5].map(i=><g key={i}><rect x="0" y={20+i*44} width={i%2?195:250} height="7" rx="3.5" opacity=".30" style={{fill: 'var(--faint)'}} />{i===2&&<rect x="-8" y={12+i*44} width="270" height="24" rx="7" opacity=".30" style={{fill: 'var(--acc)'}} />}</g>)}
       <path d="M20 330 Q55 300 65 330 T120 324" strokeWidth="3" fill="none" style={{stroke: 'var(--faint)'}} /><rect x="160" y="302" width="74" height="54" rx="5" fill="none" strokeWidth="3" opacity=".65" style={{stroke: 'var(--c-coral)'}} />
     </svg>}
-    {!rect && <svg style={{position: 'absolute', inset: 0, width, height, overflow: 'visible', pointerEvents: 'none'}}>
+    {!rect && !circle && <svg style={{position: 'absolute', inset: 0, width, height, overflow: 'visible', pointerEvents: 'none'}}>
       <polygon points={local} fill="none" stroke="rgba(150,176,186,0.45)" strokeWidth={3} />
       <polygon points={local} fill="none" stroke="rgba(236,242,250,0.9)" strokeWidth={1.5} />
     </svg>}
@@ -98,8 +103,8 @@ const Lines: React.FC<{scene:Scene;st:Starts;dur?:number}> = ({scene,st,dur}) =>
    const P0=ln.pts[0] as [number,number],P1=ln.pts.at(-1) as [number,number];
    const ti=ln.toCard?scene.cards.findIndex(c=>c.id===ln.toCard):ln.beat!=null?Math.min(scene.cards.length-1,ln.beat):near(P1).k;
    const nf=near(P0,ti),fi:number|'hub'=ln.fromCard?scene.cards.findIndex(c=>c.id===ln.fromCard):ln.beat!=null?Math.max(0,ln.beat-1):nf.dd<=40?nf.k:'hub';
-   const aS=fi==='hub'?st(0):st(Math.max(0,fi)),bS=st(Math.max(0,ti));
-   const p=ln.kind==='diagram'?glassEnter(f,st(0),'shaped'):connectionProgress(f,aS,bS,{id:ln.id,from:fi,to:Math.max(0,ti),fromKey:fi==='hub'?undefined:`r${Math.max(0,fi)}`,toKey:`r${Math.max(0,ti)}`,dur,pts:ln.pts as [number,number][],fromBox:fi==='hub'?{x:P0[0]-1,y:P0[1]-1,w:2,h:2}:boxes[Math.max(0,fi)],toBox:boxes[Math.max(0,ti)]}),path=ln.d??ln.pts.map((pt,i)=>`${i?'L':'M'}${pt[0]},${pt[1]}`).join(' '),end=ln.pts.at(-1)!,road=ln.width>=12;
+   const aS=fi==='hub'?hubAt(st(0)):st(Math.max(0,fi)),bS=st(Math.max(0,ti));
+   const p=ln.kind==='diagram'?glassEnter(f,hubAt(st(0)),'shaped'):connectionProgress(f,aS,bS,{id:ln.id,from:fi,to:Math.max(0,ti),fromKey:fi==='hub'?undefined:`r${Math.max(0,fi)}`,toKey:`r${Math.max(0,ti)}`,dur,pts:ln.pts as [number,number][],fromBox:fi==='hub'?{x:P0[0]-1,y:P0[1]-1,w:2,h:2}:boxes[Math.max(0,fi)],toBox:boxes[Math.max(0,ti)]}),path=ln.d??ln.pts.map((pt,i)=>`${i?'L':'M'}${pt[0]},${pt[1]}`).join(' '),end=ln.pts.at(-1)!,road=ln.width>=12;
    return <g key={ln.id} opacity={p}>
     <path d={path} fill="none" stroke="rgba(10,18,32,.20)" strokeWidth={ln.width+3} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1 1" data-link={ln.kind==='diagram'?'diagram':ln.id} strokeDashoffset={1-p}/>
     <path d={path} fill="none" stroke={road?'#C9D8EA':'rgba(236,242,250,.94)'} strokeWidth={ln.width} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1 1" data-link={ln.kind==='diagram'?'diagram':ln.id} strokeDashoffset={1-p}/>

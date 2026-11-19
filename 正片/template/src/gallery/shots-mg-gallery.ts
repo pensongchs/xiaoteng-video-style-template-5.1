@@ -12,7 +12,7 @@ const HISTORICAL_SAMPLES: Shot[] = ([
   pick('quoteStack'), pick('mediaRows'), pick('timeline'), pick('titleFloat'), pick('splitVs'),
   // —— 原有但少用 ——
   {layout: 'bareNumber', kicker: '裸数字', title: '税费常被{漏算}', bg: V('mixkit_42333_day'),
-    data: {chip: '示例', value: 3, unit: '%', label: '契税参考', formula: '按{面积与套数}确定', chips: [{t: '首套', tone: 'green'}, {t: '二套', tone: 'coral'}], media: {src: G('hidden_costs.jpg'), label: '交易税费', tag: '概念图'}}},
+    data: {chip: '税费', value: 3, unit: '%', label: '契税参考', formula: '按{面积与套数}确定', chips: [{t: '首套', tone: 'green'}, {t: '二套', tone: 'coral'}], media: {src: G('hidden_costs.jpg'), label: '交易税费', tag: '概念图'}}},
   {layout: 'ringFeature', kicker: '进度环', title: '首付只占{一部分}', bg: V('mixkit_42330_day'),
     data: {media: {src: G('downpayment.jpg'), label: '首付', tag: '概念图'}, ring: {ratio: 0.3, label: '首付占比', value: '30%', note: '剩下的\n{慢慢还}'}, a: {k: '贷款', value: 70, unit: '%', s: '按揭部分'}}},
   {layout: 'waitVs', kicker: '等待对比', title: '现房还是期房', bg: V('mixkit_admin_district_day'),

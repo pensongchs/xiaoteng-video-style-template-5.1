@@ -25,17 +25,19 @@ if (!SHOTS.length) {
 
 const argv = process.argv.slice(2);
 const steps = [
+  {name: '播前计划检查（口播起点入场/连线时序/卡面出处/片头节拍；纯静态，不渲染）', cmd: ['--experimental-strip-types', '--no-warnings', 'scripts/plan-check.mjs']},
   {name: 'TypeScript', cmd: ['node_modules/typescript/bin/tsc', '--noEmit']},
   {name: '风格指纹', cmd: ['scripts/check-style.mjs']},
   {name: '颜色守卫', cmd: ['scripts/check-colors.mjs']},
   {name: '可读性/字阶', cmd: ['--experimental-strip-types', '--no-warnings', 'scripts/check-readability.mjs']},
+  {name: '卡面内容守卫（占位字/空大圆大卡/稀疏长条卡/非墨蓝玻璃色）', cmd: ['--experimental-strip-types', '--no-warnings', 'scripts/check-card-content.mjs']},
   {name: '约束', cmd: ['--experimental-strip-types', '--no-warnings', 'scripts/check-constraints.mjs']},
   {name: '定格冻结', cmd: ['scripts/check-freeze.cjs']},
   {name: '顺序与连线', cmd: ['scripts/check-sequence.cjs']},
   {name: '镜头表/样例结构', cmd: ['--no-warnings', 'scripts/check-layout.mjs']},
 ];
 if (argv.includes('--dom')) {
-  steps.push({name: '小卡组合 DOM', cmd: ['--experimental-strip-types', '--no-warnings', 'scripts/cards51-domcheck.mjs']});
+  steps.push({name: '卡面 DOM（含占位字/空大圆大卡/稀疏长条卡/非墨蓝玻璃色实测）', cmd: ['--experimental-strip-types', '--no-warnings', 'scripts/cards51-domcheck.mjs']});
 }
 
 let failed = 0;
@@ -49,4 +51,4 @@ if (failed) {
   console.error(`\n✗ verify 未通过（${failed} 项）。渲染结果不能视为有效成片，禁止把失败当成风格已对齐。`);
   process.exit(1);
 }
-console.log('\n✓ verify 通过：指纹、颜色、可读性/字阶、约束、冻结、顺序与连线、镜头结构均符合 5.1.1 输出标准。静态通过不能代替画面检查。');
+console.log('\n✓ verify 通过：播前计划、指纹、颜色、可读性/字阶、卡面内容守卫、约束、冻结、顺序与连线、镜头结构均符合 5.1.3 输出标准。静态通过不能代替画面检查。');

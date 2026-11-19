@@ -1,6 +1,6 @@
 # 小滕视频风格模板5.1 · 快速上手
 
-更完整的约束见根目录 `AGENTS.md`（先读第 0、3B、3A、6、7 节）。下面是最小操作路径。风格靠已登记版式、锁定令牌和 `npm run verify` 强制执行，不能重新设计。
+更完整的约束见根目录 `AGENTS.md`（先读第 0、3D、3C、3B、3A、6、7 节）。**镜头表设计步骤（第 3D 节）**：先从每镜口播摘关键词 → 卡面文字只用这些词（不写示意/占位）→ 每张卡绑定「说到它的那句话」→ 相连两卡口播间隔 ≥ 38 帧（A 出现 → 线长 → B 出现）→ 片头一句一拍（≤1.5s）→ `npm run plan:check` 通过后再渲染。下面是最小操作路径。风格靠已登记版式、锁定令牌和 `npm run verify` 强制执行，不能重新设计。
 
 ## 安装
 
@@ -35,7 +35,7 @@ npm run episode -- 本期名
 
 - `src/demo/shots.ts`：每镜 `layout`、`at`、`anchors`、`bg`、`data`、`title` / `kicker`
   - 只选 `POOL_LAYOUTS` 里的 38 款，不要用已退役的纯文字重卡（`quoteStack`、`pitfallBoard` 等 10 款）
-  - 大卡必须有图或图表，纯文字进小卡；户型用随包 `public/media/floorplan/plan_3br2ba`
+  - 大卡必须有图或图表，纯文字进小卡；卡面不写占位字（示意/占位/标题/文字/示例），大圆大卡不能只有一两个字，长条卡按内容定宽并带图标或补充行（第 3C 节）；户型用随包 `public/media/floorplan/plan_3br2ba`
   - 不要手写颜色或小卡字号；卡面用浅色字，不用黑字
   - 流程类版式（stepRail、timeline、dataCluster、noteGroup、riskGroup、floorLadder…）**每一项**都要在 `anchors` 绑口播里说到它的词，按口播先后递增，例如 `anchors: {r0: '小区', r1: '楼栋', r2: '户型', r3: '成交'}`；连线自动在两端卡片停稳后依次长出（AGENTS.md 第 3A 节，`npm run check:sequence`）
 - `episode-plan.json`：与镜头表一致；需要数字的项加 `evidence`
@@ -47,7 +47,8 @@ npm run episode -- 本期名
 ## 检查
 
 ```bash
-npm run verify          # 必须通过（含可读性/字阶、大卡放图、退役版式、顺序连线）
+npm run plan:check       # 写完镜头表先跑：纯静态、几秒、不渲染（口播分句起点入场 / 连线 A→线→B / 卡面文字取自口播 / 片头一句一拍）
+npm run verify          # 必须通过（含可读性/字阶、卡面内容守卫、大卡放图、退役版式、顺序连线）
 npm run verify -- --dom # 正式交付建议加上；仓库不含 stock，需先 npm run stock 或补齐背景
 ```
 

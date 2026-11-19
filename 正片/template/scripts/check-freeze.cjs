@@ -29,8 +29,9 @@ function load(file) {
 const token = load('src/style/tokens.ts'), comp = load('src/style/components.tsx');
 const layouts = load('src/style/layouts.ts');
 const {connectionAt,connectionProgress} = load('src/style/connections.ts');
-for(const [a,b] of [[0,40],[80,12],[30,30]]){
- const start=connectionAt(a,b);assert(start>=a+18&&start>=b+18);
+for(const [a,b] of [[0,60],[80,130],[30,68]]){
+ // 5.1.2：A 停稳（入场+20）+hold 才起画，线在 B 入场前画完（A 出现 → 线长 → B 出现）
+ const start=connectionAt(a,b);assert(start>=a+24&&start+14<=b,'A 出现 → 线长 → B 出现');
  for(let f=-10;f<=start;f++)assert.equal(connectionProgress(f,a,b),0,'line before card settle');
  let last=0;for(let f=start;f<=start+14;f++){const p=connectionProgress(f,a,b);assert(p>=last&&p<=1);last=p;}
  assert.equal(last,1);

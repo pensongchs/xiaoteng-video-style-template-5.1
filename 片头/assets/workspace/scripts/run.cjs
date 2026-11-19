@@ -5,6 +5,7 @@ const [mode, ...args] = process.argv.slice(2);
 try {
   if (mode === 'check') {
     run(process.execPath, [path.join(root, 'node_modules/typescript/bin/tsc'), '--noEmit']);
+    run(process.execPath, ['--experimental-strip-types', '--no-warnings', path.join(root, 'scripts/check-opening-beats.mjs')]);
   } else {
     require('./doctor.cjs').doctor();
     const cli = path.join(root, 'node_modules/@remotion/cli/remotion-cli.js');

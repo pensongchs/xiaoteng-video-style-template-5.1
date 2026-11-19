@@ -48,8 +48,10 @@ export const ChecklistFill: React.FC<{r: Rect; items: {t: string; tone?: string}
       <div style={{...T, fontFamily: FONT.num, fontWeight: 700, fontSize: 44, color: COLOR.goldHi}}>{done}<span style={{fontSize: 28, color: COLOR.sub}}> / {n}</span></div>
     </div>
     {items.map((it, i) => { const p = useSp(st(i)); const ck = useSp(st(i) + 8, SPRING.snappy); const on = f >= st(i) + 8; const cur = i === done - 1;
+      // 「已完成」降亮度只在下一项接棒时平滑发生；本项自己入场期间保持 1（旧写法 on && !cur 会在入场中途先掉到 0.78 再弹回，肉眼是闪一下）
+      const dim = i < n - 1 ? Math.max(0, Math.min(1, (f - (st(i + 1) + 10)) / 8)) : 0;
       return <div key={i} className={txs} style={{...LG(cur ? 0.2 : 0.12, cur ? TINT[it.tone ?? 'gold'] : undefined), left: r.x, top: r.y + 130 + i * (rowH + 16), width: r.w, height: rowH, padding: '0 36px', display: 'flex', alignItems: 'center', gap: 28,
-        opacity: Math.min(1, p) * (on && !cur ? 0.78 : 1), transform: `translateX(${(1 - p) * 60}px) ${breathe(f, i, 2)}`}}>
+        opacity: Math.min(1, p) * (1 - 0.22 * dim), transform: `translateX(${(1 - p) * 60}px) ${breathe(f, i, 2)}`}}>
         <div style={{width: 50, height: 50, borderRadius: 14, border: '2px solid rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? ACC[it.tone ?? 'gold'] : 'transparent'}}>
           <span style={{...T, fontSize: 34, color: COLOR.pearlInk, transform: `scale(${ck})`}}>✓</span></div>
         <div style={{...B, fontSize: 40}}>{it.t}</div>

@@ -2,7 +2,7 @@
   "name": "xiaoteng-storyboard-style-5-1",
   "private": true,
   "type": "module",
-  "description": "5.1.1 定版（墨蓝·电光 + 小卡组合 + 冰蓝字幕 + 大卡放图/统一字阶/无黑字/图表重做/片尾互动）· 本地 Remotion 模板",
+  "description": "5.1.3（计划期约束 plan:check + 连线/口播锚点时序 + 片头口播节拍 + 闪烁修复）· 5.1.2（卡面内容守卫）· 5.1.1 定版（墨蓝·电光 + 小卡组合 + 冰蓝字幕 + 大卡放图/统一字阶/无黑字/图表重做/片尾互动）· 本地 Remotion 模板",
   "engines": {
     "node": ">=22.18.0"
   },
@@ -22,6 +22,8 @@
     "gallery:stills": "node scripts/freeze-stills.mjs",
     "verify": "node --experimental-strip-types --no-warnings scripts/verify.mjs",
     "check:colors": "node --experimental-strip-types --no-warnings scripts/check-colors.mjs",
+    "plan:check": "node --experimental-strip-types --no-warnings scripts/plan-check.mjs",
+    "check:cards": "node --experimental-strip-types --no-warnings scripts/check-card-content.mjs",
     "check:readability": "node scripts/check-readability.mjs",
     "check:style": "node scripts/check-style.mjs",
     "check:dom": "node --experimental-strip-types --no-warnings scripts/cards51-domcheck.mjs",
@@ -41,5 +43,5 @@
     "@types/react-dom": "19.2.3",
     "typescript": "6.0.3"
   },
-  "version": "5.1.1"
+  "version": "5.1.3"
 }

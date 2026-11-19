@@ -40,6 +40,10 @@ if (episode.previewOnly && !a.includes('--preview') && !a.includes('--studio') &
 }
 
 if (!a.includes('--studio')) {
+  // 先跑播前计划检查（几秒、不渲染）：口播起点入场 / 连线时序 / 卡面出处 / 片头节拍不过，直接拒绝渲染
+  const plan = spawnSync(process.execPath, ['--experimental-strip-types', '--no-warnings', 'scripts/plan-check.mjs'], {stdio: 'inherit'});
+  if (plan.error) throw plan.error;
+  if (plan.status) { console.error('✗ plan:check 未通过，拒绝渲染。先改镜头表（锚点/卡面文字/镜长/版式），不要渲染完再返工。'); process.exit(plan.status); }
   const check = spawnSync(process.execPath, ['--experimental-strip-types', '--no-warnings', 'scripts/verify.mjs'], {stdio: 'inherit'});
   if (check.error) throw check.error;
   if (check.status) {

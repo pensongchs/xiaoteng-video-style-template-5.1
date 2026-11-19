@@ -8,6 +8,7 @@ import {Tile, Title} from '../cards51/SmallCards';
 import {CARD_TYPE, FONT, glassEnter, toneVars} from './tokens';
 import {toneMat} from './components';
 import type {Rect} from './grid';
+import {estWidth} from './content-guard.ts';
 
 const WAVE = 'media/character/xiaoteng_outro.png', POINT = 'media/character/xiaoteng_point.png';
 const clamp = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'} as const;
@@ -36,7 +37,8 @@ export const OutroScene: React.FC<{data: any; R: Record<string, Rect>; ch: strin
   const [brand, detail] = (data.account ?? '').split('·').map((x: string) => x.trim());
   const accountText = [brand, detail].filter(Boolean).join(' · ');
   const bubbleText: string | undefined = data.bubble ?? data.note;
-  const cardW = t.w, rowH = 100, gap = 18;
+  // 5.1.2：要点小卡宽度按内容定（原来撑满 886px，内容只占 40%）；各条等宽，取最长一条。
+  const cardW = Math.min(t.w, Math.max(480, Math.ceil((CARD_TYPE.S.padX * 2 + 48 + 20 + Math.max(0, ...points.map((p) => estWidth(p, CARD_TYPE.S.title)))) / 0.65 / 4) * 4)), rowH = 100, gap = 18;
   const head = {x: t.x, y: t.y + 8};
   const hasPoints = points.length > 0;
   const listY = head.y + (data.line?.includes('\n') ? 236 : 168) + 32;
@@ -65,7 +67,7 @@ export const OutroScene: React.FC<{data: any; R: Record<string, Rect>; ch: strin
           <svg width="26" height="26" viewBox="0 0 26 26" fill="none" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" style={{stroke: 'var(--acc-hi)'}}><path d="M5 13.5l5.5 5.5L21 7.5" /></svg></span>
         <Title>{txt}</Title></div>
     </Tile>)}
-    {data.account && <Tile x={t.x} y={hasPoints ? listY + points.length * (rowH + gap) : listY} w={Math.min(cardW, 640)} h={84} tone="paper" at={accountAt} size="S" from="up" off={20} pad="0 28px">
+    {data.account && <Tile x={t.x} y={hasPoints ? listY + points.length * (rowH + gap) : listY} w={Math.min(Math.max(cardW, 480), 640)} h={84} tone="paper" at={accountAt} size="S" from="up" off={20} pad="0 28px">
       <Title style={{whiteSpace: 'nowrap'}}>{accountText}</Title></Tile>}
     {React_ && <>
       <Sparkle x={c.x + 20} y={c.y + 360} at={lastPoint + 6} kind="star" />

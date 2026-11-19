@@ -11,7 +11,8 @@ import {GRID, splitRows, type Rect} from './grid.ts';
 import {COLOR, FONT, MOTION, SPRING, TYPE, FROST, glassEnter, steadySpring as spring} from './tokens';
 import type {Shot, TimelineWindow} from './types';
 import {entranceAt} from '../sync/timeline.ts';
-import {SEQ, SEQ_KEY, recordSeqItem, normalizeSeqAnchors, actIndex} from './sequence.ts';
+import {SEQ, LINK_GAP, SEQ_KEY, recordSeqItem, normalizeSeqAnchors, actIndex} from './sequence.ts';
+import {LINK_MODE, FALLBACK_MIN_GAP} from './sequence-spec.ts';
 import {DomCheck} from './domcheck';
 import {LineChartReveal, BarGlow, RankBars, ChartPanel} from './DataCharts';
 import {Waffle, Balance, YearRing, FormulaCalc} from './DataCharts2';
@@ -29,15 +30,20 @@ export const AnchorCtx = React.createContext<Record<string, number>>({});
 const useAt = () => {
   const anchors = React.useContext(AnchorCtx);
   // 5.1 顺序：序号键（r0/s0/c0…）按序号严格递增。锚点已在 ShotView 规整；未锚定的尾项不早于最后锚定项 + 间隔。
+  const done: Record<string, number> = {}; // 本次渲染已算出的入场帧：未锚定的后续项按「连线时序」顺延
   return (key: string, fallback: number) => {
     const m = SEQ_KEY.exec(key);
     if (!m) return entranceAt(anchors[key], fallback);
-    let v: number;
+    const idx = Number(m[2]); let v: number;
     if (anchors[key] != null) v = entranceAt(anchors[key], fallback);
     else {
-      let j = Number(m[2]) - 1; while (j >= 0 && anchors[`${m[1]}${j}`] == null) j--;
-      v = j >= 0 ? Math.max(fallback, entranceAt(anchors[`${m[1]}${j}`], 0) + SEQ.minStagger * (Number(m[2]) - j)) : fallback;
+      const ug = Math.max(anchors.__gap ?? SEQ.minStagger, FALLBACK_MIN_GAP); // 无锚点时更保守：不许一起出现
+      let j = idx - 1; while (j >= 0 && anchors[`${m[1]}${j}`] == null) j--;
+      v = j >= 0 ? Math.max(fallback, entranceAt(anchors[`${m[1]}${j}`], 0) + ug * (idx - j)) : fallback;
+      const prev = done[`${m[1]}${idx - 1}`]; if (prev != null) v = Math.max(v, prev + ug);
+      const r0 = done.r0; if (m[1] === 'r' && idx >= 1 && r0 != null && anchors.__fork) v = Math.max(v, r0 + anchors.__fork);
     }
+    done[key] = v;
     recordSeqItem(key, v, anchors[key] != null);
     return v;
   };
@@ -81,7 +87,7 @@ const BareNumView: React.FC<{s: Shot}> = ({s}) => {
 };
 
 const SplitVs: React.FC<{s: Shot}> = ({s}) => {
-  const R = layoutRects('splitVs'); const d = s.data; const A = R.connArrow; const at = useAt(); const l0 = at('L', 28), r0 = at('R', Math.max(36, l0 + 8));
+  const R = layoutRects('splitVs'); const d = s.data; const A = R.connArrow; const at = useAt(); const l0 = at('L', 28), r0 = Math.max(at('R', Math.max(36, l0 + 8)), l0 + LINK_GAP); // 左卡停稳 → 箭头长 → 右卡出现
   return <>
     <MediaFrame r={R.mediaL} start={at('mediaL', l0 + 8)} {...d.L.media} from="left" soft />
     <ArrowConnector x={A.x + 48} y={A.y + 18} w={A.w - 96} a={l0} b={r0} />
@@ -195,7 +201,7 @@ const RingFeature: React.FC<{s: Shot}> = ({s}) => {
 };
 
 const WaitVs: React.FC<{s: Shot}> = ({s}) => {
-  const R = layoutRects('waitVs'); const d = s.data; const A = R.connArrow; const at = useAt(); const l0 = at('L', 26), r0 = at('R', Math.max(36, l0 + 8));
+  const R = layoutRects('waitVs'); const d = s.data; const A = R.connArrow; const at = useAt(); const l0 = at('L', 26), r0 = Math.max(at('R', Math.max(36, l0 + 8)), l0 + LINK_GAP); // 左卡停稳 → 箭头长 → 右卡出现
   return <>
     <MediaFrame r={R.mediaL} start={at('mediaL', l0 + 8)} {...d.L.media} from="left" soft />
     <MediaFrame r={R.mediaR} start={at('mediaR', Math.max(l0 + 30, r0 + 10))} {...d.R.media} from="right" soft />
@@ -318,7 +324,7 @@ const camFor = (layout: string): {dirX: number; dirY: number; zoom: number} => {
 
 export const ShotView: React.FC<{s: Shot; dur: number; exampleData?: boolean; anchors?: Record<string, number>}> = ({s, dur, exampleData, anchors: rawAnchors = {}}) => {
   const f = useCurrentFrame();
-  const anchors = normalizeSeqAnchors(rawAnchors);
+  const anchors = normalizeSeqAnchors(rawAnchors, LINK_MODE[s.layout]);
   const View = VIEWS[s.layout];
   const kt = kickerText(s);
   const bg = bgWithLuma(s.bg);

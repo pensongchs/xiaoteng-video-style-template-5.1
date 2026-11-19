@@ -8,7 +8,7 @@ import type {Rect} from './grid.ts';
 import {PropertyArt,inferVisual} from './illustrations';
 import {PhotoCutout} from './PhotoCutout';
 import {connectionProgress} from './connections';
-import {SEQ, settleAt, linkStartAt} from './sequence.ts';
+import {SEQ, settleAt, linkStartAt, hubAt} from './sequence.ts';
 
 export type Starts = (i: number) => number;
 type Tone = 'gold' | 'coral' | 'green' | 'blue' | 'none';
@@ -64,7 +64,7 @@ export const FloorLadder: React.FC<{r: Rect; floors: {f: string; k: string; s: s
 type Part = {k: string; v: number; dec?: number; unit: string; pct: number; s: string; tone?: Tone; sep?: boolean};
 export const PaymentSplit: React.FC<{R: Record<string, Rect>; total: {k: string; v: number; unit: string; s?: string}; parts: Part[]; st: Starts; dur?: number}> = ({R, total, parts, st, dur}) => {
   const f = useCurrentFrame(); const top = R.total, low = R.parts; const n = parts.length;
-  const p0 = useEnter(st(0) - 12); const split = c01(enter(f, st(0) + 4, 'soft'));
+  const p0 = useEnter(hubAt(st(0))); const split = c01(enter(f, st(0) + 4, 'soft'));
   const card = {x: top.x, y: top.y + (top.h - 150) / 2, w: 540, h: 150}, strip = {x: top.x + 580, y: top.y + (top.h - 112) / 2, w: top.w - 580, h: 112};
   const barX = strip.x + 36, barW = strip.w - 72, sum = parts.reduce((a, b) => a + b.pct, 0); const g = 14 * split;
   const segW = parts.map((p) => (barW - g * (n - 1)) * p.pct / sum); const segX = segW.map((_, i) => barX + segW.slice(0, i).reduce((a, b) => a + b, 0) + g * i);
@@ -82,11 +82,11 @@ export const PaymentSplit: React.FC<{R: Record<string, Rect>; total: {k: string;
     {parts.map((p, i) => <div key={'b' + i} data-deco style={{position: 'absolute', left: segX[i], top: top.y + top.h / 2 - 22, width: segW[i] * fill, height: 44, borderRadius: 14,
       background: segBg(p.tone), boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)', opacity: c01(p0)}} />)}
     <svg data-deco style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'visible'}}>
-      {parts.map((p, i) => { const x0 = segX[i] + segW[i] / 2, y0 = top.y + top.h / 2 + 24, x1 = low.x + i * (cw + 40) + cw / 2, y1 = low.y - 4; const a = connectionProgress(f,st(0)-12,st(i)+6,{id:'part'+i,from:'hub',to:i,toKey:`r${i}`,dur,pts:[[x0,y0],[x1,y1]],fromBox:top,toBox:{x:low.x+i*(cw+40),y:low.y,w:cw,h:low.h}});
+      {parts.map((p, i) => { const x0 = segX[i] + segW[i] / 2, y0 = top.y + top.h / 2 + 24, x1 = low.x + i * (cw + 40) + cw / 2, y1 = low.y - 4; const a = connectionProgress(f,hubAt(st(0)),st(i),{id:'part'+i,from:'hub',to:i,toKey:`r${i}`,dur,pts:[[x0,y0],[x1,y1]],fromBox:top,toBox:{x:low.x+i*(cw+40),y:low.y,w:cw,h:low.h}});
         return <path key={i} d={`M${x0},${y0} C${x0},${y0 + 120} ${x1},${y1 - 120} ${x1},${y1}`} fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth={2.5} pathLength={1}
           strokeDasharray="1 1" data-link={'part'+i} strokeDashoffset={1 - a} />; })}
     </svg>
-    {parts.map((p, i) => { const q = useEnter(st(i) + 6); const hi = hiOf(f, i, n, st); const tone = p.tone ?? 'blue';
+    {parts.map((p, i) => { const q = useEnter(st(i)); const hi = hiOf(f, i, n, st); const tone = p.tone ?? 'blue';
       return <div key={i} style={{...frost(tone), left: low.x + i * (cw + 40), top: low.y, width: cw, height: low.h, padding: '26px 36px',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: c01(q), transform: `translateY(${(1 - q) * 60}px) scale(${enterScale(q)})`}}>
         <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
@@ -104,12 +104,12 @@ export const PaymentSplit: React.FC<{R: Record<string, Rect>; total: {k: string;
 /* ============ 3 amenityOrbit 配套标签绕核心 ============ */
 export const AmenityOrbit: React.FC<{r: Rect; core: {t: string; s?: string}; tags: {t: string; s: string; tone?: Tone}[]; st: Starts; dur?: number}> = ({r, core, tags, st, dur}) => {
   const f = useCurrentFrame(); const n = tags.length; const cx = r.x + r.w / 2, cy = r.y + r.h / 2; const RX = 590, RY = 236;
-  const c = useEnter(st(0) - 14); const rot = 0; const act = actOf(f, n, st);
+  const c = useEnter(hubAt(st(0))); const rot = 0; const act = actOf(f, n, st);
   return <>
     <svg data-deco style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'visible', opacity: c01(c)}}>
       {tags.map((_, i) => { const a=-Math.PI/2+i*2*Math.PI/n+rot,dx=Math.cos(a)*RX,dy=Math.sin(a)*RY,len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len;
         const edge=Math.min(Math.abs(ux)>.001?150/Math.abs(ux):Infinity,Math.abs(uy)>.001?52/Math.abs(uy):Infinity)+6;
-        const p = connectionProgress(f,st(0)-14,st(i),{id:'orbit'+i,from:'hub',to:i,toKey:`r${i}`,dur,pts:[[cx+ux*148,cy+uy*148],[cx+dx-ux*edge,cy+dy-uy*edge]],fromBox:{x:cx-140,y:cy-140,w:280,h:280},toBox:{x:cx+dx-150,y:cy+dy-52,w:300,h:104}});
+        const p = connectionProgress(f,hubAt(st(0)),st(i),{id:'orbit'+i,from:'hub',to:i,toKey:`r${i}`,dur,pts:[[cx+ux*148,cy+uy*148],[cx+dx-ux*edge,cy+dy-uy*edge]],fromBox:{x:cx-140,y:cy-140,w:280,h:280},toBox:{x:cx+dx-150,y:cy+dy-52,w:300,h:104}});
         return <line key={i} x1={cx+ux*148} y1={cy+uy*148} x2={cx+dx-ux*edge} y2={cy+dy-uy*edge} stroke="rgba(236,242,250,.94)" strokeWidth={3} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" data-link={'orbit'+i} strokeDashoffset={1-p} opacity={p}/>; })}
     </svg>
     <div style={{...frost('gold'), left: cx - 140, top: cy - 140, width: 280, height: 280, borderRadius: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -217,8 +217,8 @@ export const PriceStep: React.FC<{r: Rect; steps: Step[]; ops?: string[]; st: St
 /* ============ 7 decisionFork 能不能买 分叉 ============ */
 type Branch = {k: string; tone: Tone; mark: string; items: string[]; tag?: string; visual?:string;cutout?:string};
 export const DecisionFork: React.FC<{R: Record<string, Rect>; q: string; yes: Branch; no: Branch; st: Starts; dur?: number}> = ({R, q, yes, no, st, dur}) => {
-  const f = useCurrentFrame(); const Q = R.q, C = R.connFork; const p0 = useEnter(st(0) - 14);
-  const fk = (j: number) => connectionProgress(f, st(0) - 14, st(1 + j), {id: 'fork' + j, from: 0, to: 1 + j, fromKey: 'r0', toKey: `r${1 + j}`, dur});
+  const f = useCurrentFrame(); const Q = R.q, C = R.connFork; const p0 = useEnter(st(0));
+  const fk = (j: number) => connectionProgress(f, st(0), st(1 + j), {id: 'fork' + j, from: 0, to: 1 + j, fromKey: 'r0', toKey: `r${1 + j}`, dur});
   const x0 = Q.x + Q.w / 2, y0 = Q.y + Q.h; const ends = [R.L, R.R].map((b) => ({x: b.x + b.w / 2, y: b.y}));
   const path = (e: {x: number; y: number}) => `M${x0},${y0} C${x0},${y0 + 110} ${e.x},${e.y - 110} ${e.x},${e.y}`;
   const br = (b: Branch, r: Rect, j: number) => {
@@ -246,7 +246,7 @@ export const DecisionFork: React.FC<{R: Record<string, Rect>; q: string; yes: Br
       })}
       <circle cx={x0} cy={(y0+ends[0].y)/2} r={4} stroke="rgba(91,155,255,.6)" strokeWidth={1.5} opacity={Math.max(fk(0),fk(1))>=1/3?1:0} style={{fill: 'var(--acc)'}} />
     </svg>
-    {[yes, no].map((b, j) => b.tag && (() => { const p = c01(enter(f, linkStartAt(st(0) - 14, st(1 + j), dur) + Math.round(SEQ.draw / 2), 'chip')); const x = j ? C.x + C.w * 0.72 : C.x + C.w * 0.28;
+    {[yes, no].map((b, j) => b.tag && (() => { const p = c01(enter(f, linkStartAt(st(0), st(1 + j), dur) + Math.round(SEQ.draw / 2), 'chip')); const x = j ? C.x + C.w * 0.72 : C.x + C.w * 0.28;
       return <div key={'t' + j} style={{position: 'absolute', left: x, top: C.y + C.h / 2, transform: `translate(-50%,-50%) scale(${0.96 + 0.04 * p})`, opacity: p}}><Pill tone={b.tone} style={{background: 'rgba(46,48,57,0.88)'}}>{b.tag}</Pill></div>; })())}
     {br(yes, R.L, 0)}{br(no, R.R, 1)}
   </>;
