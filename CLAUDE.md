@@ -16,7 +16,7 @@
 
 ## 0. 代理必须先遵守的硬规则
 
-1. 先读本标准（尤其第 3B、3A、6、7 节），并对照 `previews/current/` 定版样张：`01` 前后对比、`03` 38 款总览、`08` 图表、`09` 片尾、`10` 户型图、`04`/`05` 字幕。完整清单见该目录 README。不能只凭「科技感」「玻璃」「大厂审美」四个字重新设计。
+1. 先读本标准（尤其第 3B、3A、6、7 节），并对照 `previews/current/` 定版样张：`03` 38 款总览、`08` 图表、`09` 片尾、`10` 户型图、`04`/`05` 字幕。完整清单见该目录 README。不能只凭「科技感」「玻璃」「大厂审美」四个字重新设计。
 2. 正式镜头必须使用 `ShotView / sceneOf` 和 `src/style/layouts.ts` 里已登记的 `LayoutName`。禁止自造简版渲染器，禁止把不同版式都改成同一组手写文字卡。
 3. 颜色只来自 `正片/template/src/style/tokens.ts` 与 `subtitle-tokens.ts`（卡片用 CSS 变量 `--ink / --acc / --acc-hi` 等；标题强调用 `HILITE`；字幕用 `SUB`）。**禁止在组件、镜头数据或 props 里手写 CSS 颜色。**
 4. 默认色板锁定为 **A 墨蓝·电光 `inkBlue`**。允许的 `inputProps.palette` 只有 `inkBlue | graphiteIce | glacier`。`glacier` 仅建议夜景或深色背景；白天雾天会发白，不要当默认。

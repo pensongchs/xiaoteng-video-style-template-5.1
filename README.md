@@ -4,8 +4,6 @@
 
 **调用本模板前必须阅读并遵守 [AGENTS.md](AGENTS.md)（即《[模板输出约束标准](模板输出约束标准.md)》）。** 风格靠已登记版式、锁定令牌和 `npm run verify` 强制执行，不能重新设计。
 
-![5.1 → 5.1.1 对比](previews/current/01_5.1对比5.1.1_联系表.jpg)
-
 ![样例抽帧](previews/current/07_5.1.1顺序与连线_样例抽帧.jpg)
 
 ![选卡池 38 款总览](previews/current/03_5.1.1墨蓝电光_38款选卡池总览.jpg)
@@ -14,7 +12,7 @@
 
 ![片尾](previews/current/09_片尾_小滕互动.jpg)
 
-![字幕前后对比](previews/current/04_字幕前后对比.jpg)
+![字幕](previews/current/04_字幕_亮底与夜景.jpg)
 
 - 中文调用名：小滕视频风格模板5.1
 - 安装与制作入口：[SKILL.md](SKILL.md)
