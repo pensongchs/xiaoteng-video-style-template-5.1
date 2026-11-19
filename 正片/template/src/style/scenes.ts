@@ -2,11 +2,12 @@
 import {layoutRects, type LayoutName} from './layouts.ts';
 import {cubic, rectPoly, roundPoly, type Box, type Pt} from './geom.ts';
 import type {FogTone} from './tokens.ts';
+import {PLAN_ASSET} from './floorplans.ts';
 
 export type TextRun = {text: string; size: number; role: 'title' | 'body' | 'label' | 'room' | 'num'; box: Box; align?: 'left' | 'center'};
 export type CardGeom = {id: string; poly: Pt[]; tone: FogTone; texts: TextRun[]; marks?: Box[]; visual?: {kind: string; box: Box; src?:string}};
 export type LineGeom = {id: string; pts: Pt[]; width: number; anchor: 'both' | 'start' | 'end' | 'none'; kind: 'connector' | 'diagram'; color?: string; dot?: boolean; d?: string; beat?:number; fromCard?:string; toCard?:string};
-export type Scene = {cards: CardGeom[]; lines: LineGeom[]; planId?: string};
+export type Scene = {cards: CardGeom[]; lines: LineGeom[]; planAsset?: string};
 
 const box = (x: number, y: number, w: number, h: number): Box => ({x, y, w, h});
 const card = (id: string, b: Box, tone: FogTone, texts: TextRun[]): CardGeom => ({id, poly: rectPoly(b), tone, texts});
@@ -95,8 +96,8 @@ const scenes: Record<string, () => Scene> = {
   },
   amenityPins: () => {
     const map = layoutRects('amenityPins').map;
-    const ring = box(map.x + 24, map.y + 36, 420, 360);
-    const labels = [box(980, 300, 460, 130), box(860, 490, 420, 130), box(1080, 680, 420, 130)];
+    const ring = box(map.x + 24, map.y + 36, 360, 292);
+    const labels = [box(980, 300, 540, 130), box(860, 490, 540, 130), box(1080, 680, 540, 130)];
     const names = ['地铁站 步行8分', '小学 过马路', '公园 300米'];
     const root:Pt=[ring.x+ring.w+6,ring.y+ring.h/2],spineX=760;
     const centers=labels.map(b=>b.y+b.h/2);
@@ -105,7 +106,7 @@ const scenes: Record<string, () => Scene> = {
       return {id:'pin'+i,kind:'connector',width:3,anchor:'both',pts:[[...root],[spineX,root[1]],[spineX,target[1]],[...target]],d,fromCard:'ring',toCard:'lab'+i,dot:true};
     });
     return {cards: [
-      card('ring', ring, 'tea', [T('15分钟', 72, 'num', box(ring.x + 20, ring.y + 70, ring.w - 40, 90)), T('步行可达', 28, 'label', box(ring.x + 32, ring.y + 190, ring.w - 64, 40))]),
+      card('ring', ring, 'tea', [T('15分钟', 72, 'num', box(ring.x + 20, ring.y + 50, ring.w - 40, 100)), T('步行可达', 28, 'label', box(ring.x + 32, ring.y + 164, ring.w - 64, 40))]),
       ...labels.map((b, i) => card('lab' + i, b, 'tea', [T(names[i], 34, 'body', inset(b, 28))])),
     ], lines};
   },
@@ -142,7 +143,8 @@ const scenes: Record<string, () => Scene> = {
     const topY = c.y + 28, botY = c.y + c.h - 28;
     const cx = c.x + c.w / 2;
     const poly: Pt[] = [[cx - topW / 2, topY], [cx + topW / 2, topY], [cx + botW / 2, botY], [cx - botW / 2, botY]];
-    const rows = along(inset(R.stats, 4), 3, 28, true);
+    const rowH = 150, rowGap = 28, y0 = R.stats.y + (R.stats.h - (rowH * 3 + rowGap * 2)) / 2;
+    const rows = [0, 1, 2].map((i) => box(R.stats.x + 24, y0 + i * (rowH + rowGap), 700, rowH));
     const items = [{k: '月供', v: '32%'}, {k: '日常开销', v: '43%'}, {k: '存下来', v: '25%'}];
     const tickY = topY + (botY - topY) * 0.67;
     const tick = box(cx - 70, tickY - 3, 120, 8);
@@ -151,8 +153,8 @@ const scenes: Record<string, () => Scene> = {
       ...rows.map((b, i) => {
         const inn = inset(b, 28);
         return card('row' + i, b, i === 1 ? 'tea' : 'champ', [
-          T(items[i].k, 34, 'body', box(inn.x, inn.y + 28, inn.w * 0.46, 48)),
-          T(items[i].v, 72, 'num', box(inn.x + inn.w * 0.5, inn.y + 8, inn.w * 0.46, 88)),
+          T(items[i].k, 34, 'body', box(inn.x, inn.y + 20, inn.w * 0.46, 48)),
+          T(items[i].v, 72, 'num', box(inn.x + inn.w * 0.5, inn.y - 6, inn.w * 0.46, 100)),
         ]);
       }),
     ], lines: []};
@@ -182,7 +184,7 @@ const scenes: Record<string, () => Scene> = {
       const bow = below[i] ? 20 : -20;
       const c1: Pt = [n[0] + bow, n[1] + (end[1] - n[1]) * 0.42];
       const c2: Pt = [n[0] + bow * 0.35, end[1] - Math.sign(end[1] - n[1]) * 8];
-      return {id: 'stem' + i, kind: 'connector' as const, width: 4, anchor: 'end' as const, color: '#C4A15A', dot: false,
+      return {id: 'stem' + i, kind: 'connector' as const, width: 4, anchor: 'end' as const, color: '#8DB8FF', dot: false,
         pts: cubic(n, c1, c2, end, 4), d: `M ${n[0]} ${n[1]} C ${c1[0]} ${c1[1]}, ${c2[0]} ${c2[1]}, ${end[0]} ${end[1]}`};
     });
     return {cards: cardsB.map((b, i) => {
@@ -193,7 +195,7 @@ const scenes: Record<string, () => Scene> = {
         T(CURVE_STEPS[i].s, 34, 'body', box(inn.x, inn.y + 112, inn.w, 46), 'center'),
       ]);
     }), lines: [
-      {id: 'path', kind: 'diagram', width: 16, anchor: 'none', color: '#E6C48A', dot: false, pts: roadPts, d: roadD},
+      {id: 'path', kind: 'diagram', width: 16, anchor: 'none', color: '#6FA2F5', dot: false, pts: roadPts, d: roadD},
       ...leaders,
     ]};
   },
@@ -208,17 +210,13 @@ const scenes: Record<string, () => Scene> = {
     ], lines: notes.map((b, i) => ({id: 'c' + i, kind: 'connector' as const, width: 4, anchor: 'both' as const, pts: [[doc.x + doc.w + 3, b.y + b.h / 2], [b.x - 3, b.y + b.h / 2]] as Pt[]}))};
   },
   planSplit: () => {
-    const slot = layoutRects('planSplit').stats;
-    const stats = box(slot.x + 8, slot.y + 150, slot.w - 16, 280);
-    const s = inset(stats, 28);
-    return {planId: '三室-甲', cards: [
-      card('stats', stats, 'champ', [
-        T('套内', 32, 'label', box(s.x, s.y, s.w, 42), 'center'),
-        T('示例', 32, 'label', box(s.x, s.y + 48, s.w, 42), 'center'),
-        T('得房率', 40, 'title', box(s.x, s.y + 108, s.w, 52), 'center'),
-        T('动线经门', 34, 'body', box(s.x, s.y + 172, s.w, 48), 'center'),
-      ]),
-    ], lines: []};
+    // 5.1.1：大卡 = 户型图素材（图框，见 mgNew.PlanFrame）；文字全部在右侧三张小卡里。
+    const slot = layoutRects('planSplit').stats, h = 140, gap = 24;
+    const rows: [string, string, FogTone][] = [['套内面积', `约 ${PLAN_ASSET.netM2}㎡`, 'navy'], ['南北通透', '采光通风好', 'tea'], ['入户动线', '直通客厅', 'navy']];
+    return {planAsset: PLAN_ASSET.src, cards: rows.map(([k, v, tone], i) => {
+      const b = box(slot.x, slot.y + 24 + i * (h + gap), slot.w, h), s = inset(b, 24);
+      return card('s' + i, b, tone, [T(k, 28, 'label', box(s.x, s.y - 6, s.w, 36)), T(v, 40, 'title', box(s.x, s.y + 34, s.w, 52))]);
+    }), lines: []};
   },
   buildingSection: () => {
     const R = layoutRects('buildingSection');
@@ -267,7 +265,7 @@ const scenes: Record<string, () => Scene> = {
     return {cards: notes.map((b, i) => card('n' + i, b, 'tea', [T(words[i], 34, 'body', inset(b, 16))])), lines: bays};
   },
   hexSteps: () => {
-    const cells=[0,1,2,3].map(i=>box(108+i*388,356,348,352));
+    const cells=[0,1,2,3].map(i=>box(108+i*388,366,330,314));
     const lines:LineGeom[]=cells.slice(0,3).map((a,i)=>{
       const b=cells[i+1],y=a.y+a.h/2,from:Pt=[a.x+a.w+6,y],to:Pt=[b.x-6,y];
       return {id:'flow'+i,kind:'connector',width:3,anchor:'both',beat:i+1,fromCard:'hex'+i,toCard:'hex'+(i+1),pts:cubic(from,[from[0]+8,y],[to[0]-8,y],to,2),dot:true};
@@ -281,7 +279,7 @@ const scenes: Record<string, () => Scene> = {
   },
   inspectTags: () => {
     const rail = layoutRects('inspectTags').rail;
-    const tags = along(box(rail.x, rail.y + 150, rail.w, 360), 4, 40);
+    const tags = along(box(rail.x, rail.y + 150, rail.w, 300), 4, 40);
     const words = ['窗边', '墙角', '地漏', '插座'];
     const subs = ['看水渍', '看空鼓', '放水试', '逐个试'];
     return {cards: tags.map((b, i) => card('tag' + i, b, 'clay', [
@@ -320,7 +318,7 @@ const scenes: Record<string, () => Scene> = {
         T('室起步', 44, 'title', box(1220, 598, 220, 58), 'center'),
         T('老人房尽量靠近卫生间', 34, 'body', box(985, 694, 560, 48), 'center'),
       ]},
-    ], lines: [{id: 'toHouse', kind: 'connector', width: 4, anchor: 'both', color: '#C4A15A', dot: false,
+    ], lines: [{id: 'toHouse', kind: 'connector', width: 4, anchor: 'both', color: '#8DB8FF', dot: false,
       pts: cubic(from, c1, c2, to, 4), d: `M ${from[0]} ${from[1]} C ${c1[0]} ${c1[1]}, ${c2[0]} ${c2[1]}, ${to[0]} ${to[1]}`}]};
   },
   policyNotes: () => {
@@ -332,8 +330,8 @@ const scenes: Record<string, () => Scene> = {
     ])), lines: []};
   },
   qaBubbles: () => {
-    const q = box(120, 286, 540, 220);
-    const a = box(940, 614, 620, 220);
+    const q = box(120, 286, 500, 220);
+    const a = box(1000, 614, 540, 220);
     const from: Pt = [q.x + q.w + 4, q.y + q.h / 2];
     const to: Pt = [a.x - 4, a.y + a.h / 2];
     const c1: Pt = [from[0] + 90, from[1] + 20];
@@ -347,7 +345,7 @@ const scenes: Record<string, () => Scene> = {
         T('能买要核验', 44, 'title', box(a.x + 40, a.y + 48, a.w - 80, 58), 'center'),
         T('夏天去现场', 34, 'body', box(a.x + 40, a.y + 122, a.w - 80, 48), 'center'),
       ]),
-    ], lines: [{id: 'qa', kind: 'connector', width: 4, anchor: 'both', color: '#C4A15A', dot: false,
+    ], lines: [{id: 'qa', kind: 'connector', width: 4, anchor: 'both', color: '#8DB8FF', dot: false,
       pts: cubic(from, c1, c2, to, 4), d: `M ${from[0]} ${from[1]} C ${c1[0]} ${c1[1]}, ${c2[0]} ${c2[1]}, ${to[0]} ${to[1]}`}]};
   },
 };
@@ -380,11 +378,11 @@ export const sceneOf = (name: LayoutName | string, data?: SceneData): Scene => {
   }
   if(name==='amenityPins'){
    tone=c.id==='ring'?'navy':'paper';
-   if(c.id==='ring'){place(0,x+32,y+214,w-64,72,58,'center');place(1,x+32,y+294,w-64,48,34,'center');visual={kind:'route',box:box(x+92,y+32,w-184,164)};}
+   if(c.id==='ring'){place(0,x+32,y+166,w-64,76,58,'center');place(1,x+32,y+242,w-64,44,34,'center');visual={kind:'route',box:box(x+104,y+22,w-208,132)};}
    else{place(0,x+96,y+28,w-124,h-56,40);visual={kind:data.cardVisual?.[c.id]??'clock',box:box(x+20,y+32,62,h-64)};}
   }
   if(name==='hexSteps'){
-   tone=Number(c.id.slice(3))%2?'navy':'paper';place(1,x+44,y+144,w-88,64,44,'center');place(2,x+44,y+218,w-88,46,34,'center');place(3,x+44,y+274,w-88,46,34,'center');
+   tone=Number(c.id.slice(3))%2?'navy':'paper';place(1,x+44,y+132,w-88,64,44,'center');place(2,x+44,y+204,w-88,46,34,'center');place(3,x+44,y+256,w-88,46,34,'center');
    visual={kind:data.cardVisual?.[c.id]??'house',box:box(x+w/2-66,y+24,132,96)};
   }
   if(name==='indexTabs'&&c.id==='body'){
@@ -394,7 +392,7 @@ export const sceneOf = (name: LayoutName | string, data?: SceneData): Scene => {
   if(name==='contractNote'&&c.id==='doc')visual={kind:data.cardVisual?.[c.id]??'shield',box:box(x+w*.58,y+h*.42,w*.30,h*.36)};
   if(name==='inspectTags'){
    texts.forEach((t,i)=>place(i,x+28,y+30+i*72,w-56,58,i?34:44));
-   visual={kind:data.cardVisual?.[c.id]??(['sun','noise','shield','building'][Number(c.id.replace(/\D/g,''))%4]),box:box(x+w*.23,y+190,w*.54,128)};
+   visual={kind:data.cardVisual?.[c.id]??(['sun','noise','shield','building'][Number(c.id.replace(/\D/g,''))%4]),box:box(x+w*.23,y+170,w*.54,112)};
   }
   const src=data.cardCutout?.[c.id];
   if(src){

@@ -14,6 +14,7 @@ const steps = [
   {name: 'TypeScript', cmd: ['node_modules/typescript/bin/tsc', '--noEmit']},
   {name: '风格指纹', cmd: ['scripts/check-style.mjs']},
   {name: '颜色守卫', cmd: ['scripts/check-colors.mjs']},
+  {name: '可读性/字阶', cmd: ['--experimental-strip-types', '--no-warnings', 'scripts/check-readability.mjs']},
   {name: '约束', cmd: ['--experimental-strip-types', '--no-warnings', 'scripts/check-constraints.mjs']},
   {name: '定格冻结', cmd: ['scripts/check-freeze.cjs']},
   {name: '顺序与连线', cmd: ['scripts/check-sequence.cjs']},
@@ -34,4 +35,4 @@ if (failed) {
   console.error(`\n✗ verify 未通过（${failed} 项）。渲染结果不能视为有效成片，禁止把失败当成风格已对齐。`);
   process.exit(1);
 }
-console.log('\n✓ verify 通过：指纹、颜色、约束、冻结、顺序与连线、镜头结构均符合 5.1 输出标准。静态通过不能代替看预览样张与用户批准。');
+console.log('\n✓ verify 通过：指纹、颜色、可读性/字阶、约束、冻结、顺序与连线、镜头结构均符合 5.1.1 输出标准。静态通过不能代替看预览样张与用户批准。');

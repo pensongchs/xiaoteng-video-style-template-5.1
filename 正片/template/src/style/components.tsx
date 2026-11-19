@@ -35,12 +35,12 @@ export const GlassUnderlay:React.FC<{r:Rect}> = ({r}) => {
 };
 export const ReadabilityCtx=React.createContext({bright:false});
 export const useOutsideText=():React.CSSProperties => React.useContext(ReadabilityCtx).bright
- ? {color:'#18394C',textShadow:'0 1px 0 rgba(255,255,255,.7),0 3px 9px rgba(239,249,255,.42)',WebkitTextStroke:'.6px rgba(239,249,255,.45)',paintOrder:'stroke fill'}
- : {color:'#EEF3FA',textShadow:'0 2px 4px rgba(15,38,54,.65),0 5px 16px rgba(15,38,54,.3)',WebkitTextStroke:'1px rgba(15,38,54,.4)',paintOrder:'stroke fill'};
+ ? {color:COLOR.pearlInk,textShadow:'0 2px 3px rgba(6,16,32,.78),0 5px 22px rgba(6,16,32,.62)',WebkitTextStroke:'1.2px rgba(6,16,32,.50)',paintOrder:'stroke fill'}
+ : {color:COLOR.pearlInk,textShadow:'0 2px 4px rgba(15,38,54,.65),0 5px 16px rgba(15,38,54,.3)',WebkitTextStroke:'1px rgba(15,38,54,.4)',paintOrder:'stroke fill'};
 export const TextVeil:React.FC<{r:Rect}> = ({r}) => {
  const {bright}=React.useContext(ReadabilityCtx);
  return <div data-deco style={{position:'absolute',left:r.x-48,top:r.y-36,width:r.w+96,height:r.h+72,zIndex:-1,pointerEvents:'none',filter:'blur(20px)',background:bright
-  ?'radial-gradient(ellipse at 42% 50%,rgba(235,247,253,.65) 0%,rgba(235,247,253,.42) 48%,transparent 100%)'
+  ?'radial-gradient(ellipse at 42% 50%,rgba(14,32,58,.70) 0%,rgba(14,32,58,.46) 52%,transparent 100%)'
   :'radial-gradient(ellipse at 42% 50%,rgba(18,45,63,.42) 0%,rgba(18,45,63,.20) 50%,transparent 100%)'}}/>;
 };
 /** 兼容旧 useLiquid，现为单调入场；不拉伸、不压扁。 */
@@ -168,8 +168,8 @@ export const Chip: React.FC<{children: React.ReactNode; start: number; tone?: Ch
 
 export const Badge: React.FC<{children: React.ReactNode; size?: number; active?: boolean}> = ({children, size = 72, active = true}) => (
   <div style={{width: size, height: size, borderRadius: size * 0.3, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontFamily: FONT.num, fontSize: size * 0.38, color: active ? '#0B1424' : COLOR.warm,
-    background: active ? 'radial-gradient(circle at 30% 25%, var(--acc), var(--acc) 55%, var(--acc))' : 'rgba(255,255,255,0.12)',
+    fontFamily: FONT.num, fontSize: size * 0.38, color: COLOR.pearlInk,
+    background: active ? 'linear-gradient(180deg, color-mix(in srgb, var(--acc-raw) 70%, #12348C), color-mix(in srgb, var(--acc-raw) 45%, #12348C))' : 'rgba(255,255,255,0.12)',
     boxShadow: active ? '0 0 22px rgba(91,155,255,0.55)' : 'none'}}>{children}</div>
 );
 
@@ -185,13 +185,13 @@ export const Kicker: React.FC<{text: string; plate?: boolean}> = ({text, plate})
 
 export const GoldText: React.FC<{text: string}> = ({text}) => {
  const {bright}=React.useContext(ReadabilityCtx);
- return <>{text.split(/(\{[^}]+\})/).map((s,i)=>s.startsWith('{')?<span key={i} className="gt" style={{color:bright?HILITE.bright:HILITE.dark}}>{s.slice(1,-1)}</span>:<span key={i}>{s}</span>)}</>;
+ return <>{text.split(/(\{[^}]+\})/).map((s,i)=>s.startsWith('{')?<span key={i} className="gt" style={{color:HILITE.dark}}>{s.slice(1,-1)}</span>:<span key={i}>{s}</span>)}</>;
 };
 
 export const Headline: React.FC<{text: string; start?: number; plate?: boolean}> = ({text, start = 2}) => {
   const p=useSpringP(start,SPRING.enter),outside=useOutsideText(),{bright}=React.useContext(ReadabilityCtx);
   return <div style={{position:'absolute',left:96,top:100,width:1536,height:100,display:'flex',alignItems:'center',opacity:p,transform:`translateY(${(1-p)*22}px)`}}>
-    <div style={{display:'inline-flex',alignItems:'center',height:100,padding:'0 24px',borderRadius:24,background:bright?'linear-gradient(110deg,rgba(235,247,253,.52),rgba(235,247,253,.24))':'linear-gradient(110deg,rgba(23,53,72,.35),rgba(23,53,72,.12))',border:'1px solid rgba(227,246,255,.32)',boxShadow:'0 7px 20px -12px rgba(20,45,60,.28),inset 0 1px 0 rgba(255,255,255,.22)',backdropFilter:'blur(16px)'}}>
+    <div data-deco style={{display:'inline-flex',alignItems:'center',height:100,padding:'0 24px',borderRadius:24,background:bright?'linear-gradient(110deg,rgba(14,32,58,.72),rgba(14,32,58,.40))':'linear-gradient(110deg,rgba(23,53,72,.35),rgba(23,53,72,.12))',border:'1px solid rgba(227,246,255,.32)',boxShadow:'0 7px 20px -12px rgba(20,45,60,.28),inset 0 1px 0 rgba(255,255,255,.22)',backdropFilter:'blur(16px)'}}>
       <div style={{fontFamily:FONT.title,fontSize:74,...outside,lineHeight:1.2,whiteSpace:'pre-line'}}><GoldText text={text}/></div>
     </div>
   </div>;
@@ -316,11 +316,10 @@ export const Timeline: React.FC<{r: Rect; start: number; steps: {t: string; s: s
 export const IconRow: React.FC<{r: Rect; start: number; idx: string; title: string; sub: string; tip?: string; active?: boolean; from?: Enter; glass?: boolean; activeAt?: number; offAt?: number; dim?: number; nudge?: number; subStart?: number; icon?:string}> =
 ({r,start,idx,title,sub,tip,from='right',glass=true,subStart,icon}) => {
  const f=useCurrentFrame(),p=useSpringP(start,SPRING.enter),es=enterStyle(from,p),tone=Number(idx)%2===0?'blue':'none';
- return <div style={{position:'absolute',left:r.x,top:r.y+7,width:r.w,height:r.h-14,...glassMat('dark',FROST.tint[tone]),borderRadius:36,display:'flex',alignItems:'center',gap:28,padding:'20px 34px',boxSizing:'border-box',...es}}>
-   <div data-deco style={{width:104,height:96,flexShrink:0,borderRadius:24,background:'rgba(255,255,255,.26)',boxShadow:'inset 0 1px 0 rgba(255,255,255,.55)'}}><PropertyArt kind={icon||inferVisual(title)} color={tone==='blue'?'var(--acc)':'var(--acc)'}/></div>
-   <div style={{flex:1,minWidth:0}}><div style={{fontFamily:FONT.title,fontSize:title.length>8?44:52,lineHeight:1.3,color:FROST.ink}}>{title}</div>
+ return <div style={{position:'absolute',left:r.x,top:r.y+7,width:r.w,height:r.h-14,...glassMat('dark',FROST.tint[tone]),borderRadius:36,display:'flex',alignItems:'center',gap:22,padding:'12px 30px',boxSizing:'border-box',...es}}>
+   <div data-deco style={{width:88,height:88,flexShrink:0,borderRadius:24,background:'rgba(255,255,255,.26)',boxShadow:'inset 0 1px 0 rgba(255,255,255,.55)'}}><PropertyArt kind={icon||inferVisual(title)} color={tone==='blue'?'var(--acc)':'var(--acc)'}/></div>
+   <div style={{flex:1,minWidth:0}}><div style={{fontFamily:FONT.title,fontSize:title.length>8?40:title.length>6?40:title.length>4?46:52,lineHeight:1.3,whiteSpace:'nowrap',color:FROST.ink}}>{title}</div>
    {sub&&<div data-role="body" style={{fontFamily:FONT.body,fontWeight:700,fontSize:34,lineHeight:1.35,color:FROST.sub,marginTop:10,opacity:subStart==null?1:glassEnter(f,subStart)}}>{sub}</div>}</div>
-   <div style={{alignSelf:'flex-start',fontFamily:FONT.num,fontSize:28,color:'rgba(26,45,56,.58)',paddingTop:6}}>{idx}</div>
    {tip&&<Chip start={start+8}>{tip}</Chip>}
  </div>;
 };
@@ -331,7 +330,7 @@ export const QuoteBlock: React.FC<{r: Rect; start: number; text: string; sub?: s
  const f=useCurrentFrame(),p=useSpringP(start,SPRING.enter),lines=text.split('\n');
  const textH=lines.length*82+(sub?100:0),artH=Math.min(292,Math.max(120,r.h-textH-132));
  return <div style={{position:'absolute',left:r.x,top:r.y,width:r.w,height:r.h,...glassMat('dark',FROST.tint.blue),borderRadius:40,padding:42,boxSizing:'border-box',opacity:p}}>
-  <div data-deco style={{fontFamily:FONT.num,fontSize:96,lineHeight:.8,color:'rgba(16,40,58,.23)'}}>“</div>
+  <div data-deco style={{fontFamily:FONT.num,fontSize:96,lineHeight:.8,color:'var(--faint)',opacity:.55}}>“</div>
   <div style={{fontFamily:FONT.title,fontSize:60,lineHeight:1.35,color:FOG.navy.ink,marginTop:12}}>{lines.map((line,i)=><div key={i} style={{opacity:glassEnter(f,lineAt?.[i]??start+i*10)}}><GoldText text={line}/></div>)}</div>
   {sub&&<div data-role="body" style={{fontFamily:FONT.body,fontWeight:700,fontSize:34,lineHeight:1.35,marginTop:24,color:FOG.navy.ink}}>{sub}</div>}
   <div style={{position:'absolute',left:58,right:58,bottom:32,height:artH}}><PhotoCutout src={cutout} kind={visual||inferVisual(text)} color="var(--acc)"/></div>
@@ -345,7 +344,7 @@ export const SoftCallout: React.FC<{r: Rect; start: number; text: string; tone?:
   return <div data-fit="callout" style={{position: 'absolute', left: r.x, top: r.y + (r.h - H) / 2, maxWidth: r.w, height: H, display: 'inline-flex', alignItems: 'center', gap: 24, padding: '0 56px', boxSizing: 'border-box', whiteSpace: 'nowrap',
     borderRadius: 18, ...glassMat('dark', tone === 'coral' ? 'rgba(255,107,94,0.30)' : 'rgba(91,155,255,0.10)', tone === 'coral' ? 'rgba(255,107,94,0.55)' : 'rgba(91,155,255,0.5)'), ...enterStyle('scale', p)}}>
     <div style={{width: 52, height: 52, borderRadius: 26, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT.num, fontSize: 28,
-      color: tone === 'coral' ? '#fff' : '#0B1424', background: tone === 'coral' ? COLOR.coral : 'radial-gradient(circle at 30% 25%,var(--acc),var(--acc))'}}>{icon ?? (tone === 'coral' ? '!' : '✓')}</div>
+      color: COLOR.pearlInk, background: tone === 'coral' ? 'linear-gradient(180deg, color-mix(in srgb, var(--c-coral) 78%, #5A1414), color-mix(in srgb, var(--c-coral) 58%, #5A1414))' : 'linear-gradient(180deg, color-mix(in srgb, var(--acc-raw) 70%, #12348C), color-mix(in srgb, var(--acc-raw) 45%, #12348C))'}}>{icon ?? (tone === 'coral' ? '!' : '✓')}</div>
     <span data-fit-text style={{fontFamily: FONT.title, fontSize: 38, color: FROST.ink}}><GoldText text={text} /></span>
   </div>;
 };
@@ -399,7 +398,7 @@ const RhythmSplitType: React.FC<{r: Rect; start: number; line1: string; line2: s
  const p1=glassEnter(f,start),p2=glassEnter(f,line2Start,rhythm?'chip':'enter');
  const focus=rhythm?.focus,parts=focus?line1.split(focus):[];
  return <><TextVeil r={{...r,y:r.y+r.h*.18,h:r.h*.64}}/><div style={{position:'absolute',left:r.x,top:r.y,width:r.w,height:r.h,display:'flex',flexDirection:'column',justifyContent:'center'}}>
-  <div style={{fontFamily:FONT.title,fontSize:TYPE.heroTitle,...outside,...(rhythm?{color:'#EEF3FA',textShadow:'0 4px 14px rgba(20,24,23,.32)'}:{}),lineHeight:1.3,opacity:p1,transform:`translateX(${rhythm?-42*(1-p1):0}px) translateY(${(1-p1)*28}px)`}}>{rhythm&&focus&&parts.length>1?<>{parts[0]}<span style={{color:'#FFDF51'}}>{focus}</span>{parts.slice(1).join(focus)}</>:line1}</div>
+  <div style={{fontFamily:FONT.title,fontSize:TYPE.heroTitle,...outside,...(rhythm?{color:'#EEF3FA',textShadow:'0 4px 14px rgba(20,24,23,.32)'}:{}),lineHeight:1.3,opacity:p1,transform:`translateX(${rhythm?-42*(1-p1):0}px) translateY(${(1-p1)*28}px)`}}>{rhythm&&focus&&parts.length>1?<>{parts[0]}<span style={{color:HILITE.dark}}>{focus}</span>{parts.slice(1).join(focus)}</>:line1}</div>
   <div style={{fontFamily:FONT.title,fontSize:TYPE.heroTitle,lineHeight:1.3,marginTop:rhythm?18:0,alignSelf:'flex-start',opacity:p2,transform:`translateY(${(1-p2)*36}px) scale(${rhythm?1.12-.12*p2:.96+.04*p2})`,transformOrigin:'0 50%',...outside,color:rhythm?'#EEF3FA':bright?HILITE.bright:HILITE.dark,...(rhythm?{padding:'6px 18px 12px',marginLeft:-18,borderRadius:22,background:'linear-gradient(120deg,var(--c-coral),var(--c-coral))',boxShadow:'0 14px 28px rgba(255,107,94,.22)',textShadow:'0 3px 9px rgba(255,107,94,.18)'}:{})}}>{line2}</div>
   {sub&&<div style={{fontFamily:FONT.body,fontSize:TYPE.body,lineHeight:1.35,marginTop:24,...outside,opacity:p2}}>{sub}</div>}
  </div></>;
@@ -410,12 +409,12 @@ export const SplitType:React.FC<React.ComponentProps<typeof RhythmSplitType>> = 
 export const StatPill: React.FC<{r: Rect; start: number; k: string; value: number; unit: string; dec?: number; sep?: boolean; s?: string; hi?: boolean}> =
 ({r, start, k, value, unit, dec, sep, s, hi}) => {
   const p = useSpringP(start, SPRING.enter);
-  return <div data-fit="pill" style={{position: 'absolute', left: r.x, top: r.y, width: r.w, height: r.h, borderRadius: 22, padding: '40px 44px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center',
+  return <div data-fit="pill" style={{position: 'absolute', left: r.x, top: r.y, width: r.w, height: r.h, borderRadius: 22, padding: r.h < 260 ? '16px 36px' : '40px 44px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center',
     ...glassMat('dark', hi ? 'rgba(91,155,255,0.45)' : undefined, hi ? 'rgba(91,155,255,0.5)' : undefined), ...enterStyle('up', p)}}>
     <div style={{fontFamily: FONT.body, fontWeight: 700, fontSize: TYPE.label, color: FROST.gold, letterSpacing: 2}}>{k}</div>
-    <div style={{fontFamily: FONT.num, fontSize: 68, color: FROST.ink, marginTop: 18, lineHeight: 1.1, whiteSpace: 'nowrap'}}>
+    <div style={{fontFamily: FONT.num, fontSize: 68, color: FROST.ink, marginTop: r.h < 260 ? 8 : 18, lineHeight: 1.1, whiteSpace: 'nowrap'}}>
       <Count to={value} start={start + 6} dec={dec} sep={sep} /><span style={{fontFamily: FONT.body, fontWeight: 700, fontSize: TYPE.body, marginLeft: 10}}>{unit}</span>
     </div>
-    {s && <div data-role="body" style={{fontFamily: FONT.body, fontSize: TYPE.body, lineHeight: 1.35, color: FROST.sub, marginTop: 20}}>{s}</div>}
+    {s && <div data-role="body" style={{fontFamily: FONT.body, fontSize: TYPE.body, fontWeight: 700, lineHeight: 1.35, color: COLOR.pearlInk, textShadow: '0 2px 10px rgba(6,16,32,.8)', marginTop: r.h < 260 ? 8 : 20}}>{s}</div>}
   </div>;
 };

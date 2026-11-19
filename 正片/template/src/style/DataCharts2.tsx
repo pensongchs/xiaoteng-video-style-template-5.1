@@ -1,7 +1,7 @@
 // 第二组数据/MG 样式：排名条 / 方块格 / 天平 / 年份进度环 / 月供算式
 import React from 'react';
 import {Easing, interpolate, useCurrentFrame} from 'remotion';
-import {COLOR, FONT, FROST, MOTION} from './tokens';
+import {CHART_INK, COLOR, FONT, FROST, MOTION} from './tokens';
 import {glassMat} from './components';
 import {PropertyArt} from './illustrations';
 import type {Rect} from './grid';
@@ -13,21 +13,6 @@ const WARM_BAR = 'linear-gradient(90deg, rgba(236,242,250,0.06), rgba(236,242,25
 const num = (size: number, gold?: boolean): React.CSSProperties => ({fontFamily: FONT.num, fontWeight: 700, fontSize: size, color: gold ? COLOR.goldHi : COLOR.warm});
 const lab = (size = 34, dim?: boolean): React.CSSProperties => ({fontFamily: FONT.body, fontWeight: 700, fontSize: size, color: dim ? COLOR.sub : COLOR.warm});
 
-/** 1 横向排名条 */
-export const RankBars: React.FC<{r: Rect; start: number; rows: {k: string; v: number}[]; unit: string; vMax: number}> = ({r, start, rows, unit, vMax}) => {
-  const f = useCurrentFrame(); const labW = 260, valW = 220, gap = 36; const barMax = r.w - labW - valW - gap * 2;
-  const rowH = 64, step = (r.h - rowH) / (rows.length - 1);
-  return <div className="txs" style={abs(r)}>{rows.map((o, i) => {
-    const s = start + i * MOTION.stagger; const g = P(f, s + 6, 34); const top = i * step; const hi = i === 0;
-    return <div key={i} style={{position: 'absolute', left: 0, top, width: r.w, height: rowH, display: 'flex', alignItems: 'center', opacity: P(f, s)}}>
-      <div style={{width: labW, ...lab(36, !hi), textAlign: 'right', marginRight: gap}}>{o.k}</div>
-      <div style={{width: barMax * (o.v / vMax) * g, height: 40, borderRadius: 20, background: hi ? GOLD_BAR : WARM_BAR,
-        borderRight: `3px solid ${hi ? COLOR.goldHi : 'rgba(236,242,250,0.7)'}`, boxShadow: hi ? '0 0 30px rgba(91,155,255,0.35)' : 'none'}} />
-      <div style={{marginLeft: gap, whiteSpace: 'nowrap'}}><span style={num(hi ? 64 : 52, hi)}>{(o.v * g).toFixed(1)}</span><span style={{...lab(28, true), marginLeft: 8}}>{unit}</span></div>
-    </div>;
-  })}</div>;
-};
-
 /** 2 方块格 10×10 */
 export const Waffle: React.FC<{r: Rect; start: number; on: number; value: string; unit: string; caption: string}> = ({r, start, on, value, unit, caption}) => {
   const f = useCurrentFrame(); const size = r.h; const cell = size / 10; const sq = cell - 10;
@@ -36,8 +21,8 @@ export const Waffle: React.FC<{r: Rect; start: number; on: number; value: string
   return <div className="txs" style={abs(r)}>
     {Array.from({length: 100}).map((_, i) => { const c = i % 10, row = Math.floor(i / 10); const a = P(f, start + (c + row) * 1.2, 12); const isOn = i < lit;
       return <div key={i} style={{position: 'absolute', left: c * cell, top: row * cell, width: sq, height: sq, borderRadius: 8, opacity: a,
-        background: isOn ? 'linear-gradient(160deg,var(--acc),var(--acc) 60%,var(--acc))' : 'rgba(236,242,250,0.14)',
-        boxShadow: isOn ? '0 0 14px rgba(91,155,255,0.4)' : 'none', border: isOn ? 'none' : '1px solid rgba(236,242,250,0.18)'}} />; })}
+        background: isOn ? `linear-gradient(160deg,${CHART_INK.key},${CHART_INK.keyDeep})` : 'rgba(236,242,250,0.14)',
+        boxShadow: isOn ? '0 0 14px rgba(91,155,255,0.4)' : 'none', border: isOn ? 'none' : '1px solid rgba(236,242,250,0.34)'}} />; })}
     <div style={{position: 'absolute', left: size + 96, top: size * 0.22, width: r.w - size - 96, opacity: tp, transform: `translateY(${(1 - tp) * 24}px)`}}>
       <div style={{whiteSpace: 'nowrap'}}><span style={num(150, true)}>{Math.round(lit)}</span><span style={{...lab(44), marginLeft: 12}}>{unit}</span></div>
       <div style={{...lab(38), marginTop: 24, lineHeight: 1.4, whiteSpace: 'pre-line'}}>{caption}</div>
@@ -48,7 +33,7 @@ export const Waffle: React.FC<{r: Rect; start: number; on: number; value: string
 
 /** 3 天平 */
 export const Balance: React.FC<{r: Rect; start: number; L: {k: string; v: string; s: string}; R: {k: string; v: string; s: string}; tilt: number}> = ({r, start, L, R, tilt}) => {
-  const f = useCurrentFrame(); const cx = r.w / 2, beamY = 250, arm = 520; // 横梁下移，倾斜后不进标题区
+  const f = useCurrentFrame(); const cx = r.w / 2, beamY = 186, arm = 480; // 横梁下移，倾斜后不进标题区
   const t = P(f, start + 24, 40) * tilt; const rad = (t * Math.PI) / 180; const ap = P(f, start);
   const end = (side: -1 | 1) => ({x: cx + side * arm * Math.cos(rad), y: beamY + side * arm * Math.sin(rad)});
   const pan = (side: -1 | 1, d: typeof L, heavy: boolean) => { const e = end(side); const p = P(f, start + 8 + (side > 0 ? 6 : 0));
@@ -71,7 +56,7 @@ export const Balance: React.FC<{r: Rect; start: number; L: {k: string; v: string
 
 /** 4 年份进度环（分段刻度 + 年份标点） */
 export const YearRing: React.FC<{r: Rect; start: number; years: number; key1: number; title: string; sub: string; side: {k: string; v: string}[]}> = ({r, start, years, key1, title, sub, side}) => {
-  const f = useCurrentFrame(); const D = r.h, R0 = D / 2 - 30, cx = D / 2, cy = D / 2;
+  const f = useCurrentFrame(); const D = r.h, R0 = D / 2 - 62, cx = D / 2, cy = D / 2;
   const p = interpolate(f, [start + 10, start + 50], [0, key1 / years], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: E});
   const cur = p * years; const hit = P(f, start + 50, 14);
   const pt = (y: number, rr: number) => { const a = (y / years) * 2 * Math.PI - Math.PI / 2; return {x: cx + rr * Math.cos(a), y: cy + rr * Math.sin(a)}; };
@@ -101,23 +86,22 @@ export const YearRing: React.FC<{r: Rect; start: number; years: number; key1: nu
 /** 5 月供算式 */
 export const FormulaCalc: React.FC<{r: Rect; start: number; terms: {v: string; k: string}[]; ops: string[]; result: number; unit: string; note: string; resultLabel?: string; noteSize?: number; termStarts?: number[]; resultStart?: number}> = ({r,start,terms,ops,result,unit,note,resultLabel='计算结果',termStarts,resultStart}) => {
  const f=useCurrentFrame(),resultAt=resultStart??start+terms.length*10+14,rp=P(f,resultAt,16),shown=Math.round(result*rp).toLocaleString('en-US');
- const leftW=r.w*.586,gap=90,cw=(leftW-gap*(terms.length-1))/terms.length,resultX=leftW+100,resultW=r.w-resultX;
+ const RW=380,gap=56,leftW=r.w-RW-100,cw=(leftW-gap*(terms.length-1))/terms.length,resultX=leftW+100,resultW=RW,TH=340,RH=280,ty=(r.h-TH)/2,ry=(r.h-RH)/2;
  return <div style={abs(r)}>
   {terms.map((t,i)=>{const p=P(f,termStarts?.[i]??start+i*10),x=i*(cw+gap);return <React.Fragment key={i}>
-   <div style={{position:'absolute',left:x,top:92,width:cw,height:386,...glassMat('dark'),borderRadius:36,opacity:p,transform:`translateY(${(1-p)*28}px)`}}>
-    <div style={{position:'absolute',left:cw/2-64,top:26,width:128,height:100}}><PropertyArt kind={/天|小时/.test(t.k)?'clock':'calendar'} /></div>
-    <div style={{position:'absolute',left:20,top:142,width:cw-40,textAlign:'center',fontFamily:FONT.num,fontWeight:700,fontSize:terms.length>2?88:112,lineHeight:1.1,color:FROST.ink}}>{t.v}</div>
-    <div data-role="body" style={{position:'absolute',left:20,top:286,width:cw-40,textAlign:'center',fontFamily:FONT.body,fontWeight:700,fontSize:34,lineHeight:1.35,color:FROST.sub}}>{t.k}</div>
+   <div style={{position:'absolute',left:x,top:ty,width:cw,height:TH,...glassMat('dark'),borderRadius:36,opacity:p,transform:`translateY(${(1-p)*28}px)`}}>
+    <div style={{position:'absolute',left:cw/2-52,top:22,width:104,height:80}}><PropertyArt kind={/天|小时/.test(t.k)?'clock':'calendar'} /></div>
+    <div style={{position:'absolute',left:10,top:116,width:cw-20,textAlign:'center',whiteSpace:'nowrap',fontFamily:FONT.num,fontWeight:700,fontSize:terms.length>2?64:80,lineHeight:1.15,color:FROST.ink}}>{t.v}</div>
+    <div data-role="body" style={{position:'absolute',left:10,top:236,width:cw-20,textAlign:'center',whiteSpace:'nowrap',fontFamily:FONT.body,fontWeight:700,fontSize:34,lineHeight:1.35,color:FROST.sub}}>{t.k}</div>
    </div>
-   {i<ops.length&&<div style={{position:'absolute',left:x+cw,top:240,width:gap,textAlign:'center',fontFamily:FONT.num,fontSize:64,color:'#EEF3FA',textShadow:'0 3px 6px #071b2a',opacity:P(f,termStarts?.[i+1]??start+i*10+6)}}>{ops[i]}</div>}
+   {i<ops.length&&<div style={{position:'absolute',left:x+cw,top:ty+TH/2-40,width:gap,textAlign:'center',fontFamily:FONT.num,fontSize:56,color:COLOR.pearlInk,textShadow:'0 3px 6px rgba(6,16,32,.7)',opacity:P(f,termStarts?.[i+1]??start+i*10+6)}}>{ops[i]}</div>}
   </React.Fragment>;})}
-  <div style={{position:'absolute',left:leftW,top:240,width:100,textAlign:'center',fontFamily:FONT.num,fontSize:64,color:'#EEF3FA',textShadow:'0 3px 6px #071b2a',opacity:rp}}>=</div>
-  <div style={{position:'absolute',left:resultX,top:40,width:resultW,height:500,...glassMat('dark',FROST.tint.gold),borderRadius:40,opacity:rp,transform:`translateY(${(1-rp)*28}px)`}}>
-   <div style={{position:'absolute',left:32,top:30,width:resultW-64,fontFamily:FONT.body,fontWeight:700,fontSize:36,lineHeight:1.3,color:FROST.ink}}>{resultLabel.replace(/[≈=]\s*$/,'')}</div>
-   <div style={{position:'absolute',left:30,top:142,width:resultW-60,textAlign:'center',fontFamily:FONT.num,fontWeight:700,fontSize:150,lineHeight:1.1,color:'var(--faint)'}}>{shown}</div>
-   <div style={{position:'absolute',left:30,top:316,width:resultW-60,textAlign:'center',fontFamily:FONT.body,fontWeight:700,fontSize:40,lineHeight:1.3,color:FROST.ink}}>{unit}</div>
-   <div data-deco style={{position:'absolute',left:32,right:32,top:394,height:1,background:'rgba(10,18,32,.2)'}}/>
-   <div data-role="body" style={{position:'absolute',left:24,top:422,width:resultW-48,textAlign:'center',fontFamily:FONT.body,fontWeight:700,fontSize:34,lineHeight:1.3,color:FROST.ink}}>{note}</div>
+  <div style={{position:'absolute',left:leftW,top:ty+TH/2-40,width:100,textAlign:'center',fontFamily:FONT.num,fontSize:56,color:COLOR.pearlInk,textShadow:'0 3px 6px rgba(6,16,32,.7)',opacity:rp}}>=</div>
+  <div style={{position:'absolute',left:resultX,top:ry,width:resultW,height:RH,...glassMat('dark',FROST.tint.gold),borderRadius:40,opacity:rp,transform:`translateY(${(1-rp)*28}px)`}}>
+   <div style={{position:'absolute',left:28,top:12,width:resultW-56,fontFamily:FONT.body,fontWeight:700,fontSize:34,lineHeight:1.3,color:FROST.ink}}>{resultLabel.replace(/[≈=]\s*$/,'')}</div>
+   <div style={{position:'absolute',left:20,top:56,width:resultW-40,textAlign:'center',whiteSpace:'nowrap',fontFamily:FONT.num,fontWeight:700,fontSize:96,lineHeight:1.1,color:'var(--faint)'}}>{shown}<span style={{fontFamily:FONT.body,fontSize:40,marginLeft:8,color:FROST.ink}}>{unit}</span></div>
+   <div data-deco style={{position:'absolute',left:28,right:28,top:170,height:1,background:'rgba(236,242,250,.28)'}}/>
+   <div data-role="body" style={{position:'absolute',left:16,top:178,width:resultW-32,textAlign:'center',fontFamily:FONT.body,fontWeight:700,fontSize:34,lineHeight:1.3,color:FROST.ink}}>{note}</div>
   </div>
  </div>;
 };

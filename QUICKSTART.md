@@ -1,6 +1,6 @@
 # 小滕视频风格模板5.1 · 快速上手
 
-更完整的约束见根目录 `AGENTS.md`。下面是最小操作路径。
+更完整的约束见根目录 `AGENTS.md`（先读第 0、3B、3A、6、7 节）。下面是最小操作路径。风格靠已登记版式、锁定令牌和 `npm run verify` 强制执行，不能重新设计。
 
 ## 安装
 
@@ -29,9 +29,12 @@ npm run episode -- 本期名
 
 ## 选版式并填镜头
 
-阅读 `AGENTS.md` 第 6 节决策表。编辑：
+阅读 `AGENTS.md` 第 6 节决策表和第 3B 节。编辑：
 
 - `src/demo/shots.ts`：每镜 `layout`、`at`、`anchors`、`bg`、`data`、`title` / `kicker`
+  - 只选 `POOL_LAYOUTS` 里的 38 款，不要用已退役的纯文字重卡（`quoteStack`、`pitfallBoard` 等 10 款）
+  - 大卡必须有图或图表，纯文字进小卡；户型用随包 `public/media/floorplan/plan_3br2ba`
+  - 不要手写颜色或小卡字号；卡面用浅色字，不用黑字
   - 流程类版式（stepRail、timeline、dataCluster、noteGroup、riskGroup、floorLadder…）**每一项**都要在 `anchors` 绑口播里说到它的词，按口播先后递增，例如 `anchors: {r0: '小区', r1: '楼栋', r2: '户型', r3: '成交'}`；连线自动在两端卡片停稳后依次长出（AGENTS.md 第 3A 节，`npm run check:sequence`）
 - `episode-plan.json`：与镜头表一致；需要数字的项加 `evidence`
 
@@ -42,11 +45,11 @@ npm run episode -- 本期名
 ## 检查
 
 ```bash
-npm run verify          # 必须通过
-npm run verify -- --dom # 正式交付建议加上
+npm run verify          # 必须通过（含可读性/字阶、大卡放图、退役版式、顺序连线）
+npm run verify -- --dom # 正式交付建议加上；仓库不含 stock，需先 npm run stock 或补齐背景
 ```
 
-不要改 `style-lock.json` 或 `color-allowlist.json` 来通过检查。
+不要改 `style-lock.json` 或 `color-allowlist.json` 来通过检查。检查失败时修的是镜头配置、文案或素材，不是检查本身。
 
 ## 预览与导出
 

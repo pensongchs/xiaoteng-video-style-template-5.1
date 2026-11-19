@@ -25,5 +25,5 @@ export type Shot = {
 /** 片尾数据：文字只来自当期片尾文案；禁止「点赞/关注/收藏/转发」类引导语（模板会自动过滤）。
  *  character 默认用小滕挥手形象，传 false 关闭；account 为可选小字署名 */
 export type OutroData = {
-  eyebrow?: string; line: string; points?: string[]; note?: string; account?: string; character?: string | false;
+  eyebrow?: string; line: string; points?: string[]; note?: string; bubble?: string; account?: string; character?: string | false; reactions?: boolean;
 };

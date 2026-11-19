@@ -93,7 +93,7 @@ export const SHOTS:Shot[]=[
   },
   {
     "id": "S03",
-    "layout": "contractNote",
+    "layout": "riskGroup",
     "title": "签约先看{这三处}",
     "bg": {
       "src": "media/gen/west_sun.jpg",
@@ -101,26 +101,37 @@ export const SHOTS:Shot[]=[
       "blur": 0
     },
     "data": {
-      "sceneText": {
-        "doc": [
-          "合同里先看这三处"
+      "head": {
+        "t": "签约先看",
+        "n": "03"
+      },
+      "items": [
+        [
+          "交房日期",
+          "写明逾期违约"
         ],
-        "n0": [
-          "交房日期"
+        [
+          "违约责任",
+          "逐条看清"
         ],
-        "n1": [
-          "违约责任"
-        ],
-        "n2": [
-          "贷款条款"
+        [
+          "贷款条款",
+          "利率与期限"
         ]
+      ],
+      "pill": {
+        "t": "逐条核对再签"
       }
     },
     "at": {
       "ms": 10000
     },
     "anchors": {
-      "entry": 3
+      "entry": 3,
+      "r0": "签约先看",
+      "r1": "交房日期",
+      "r2": "违约责任",
+      "r3": "贷款条款"
     }
   },
   {
@@ -176,16 +187,7 @@ export const SHOTS:Shot[]=[
       "dark": 0.46,
       "blur": 0
     },
-    "data": {
-      "sceneText": {
-        "stats": [
-          "套内",
-          "示例",
-          "得房率",
-          "动线经门"
-        ]
-      }
-    },
+    "data": {},
     "at": {
       "ms": 20000
     },
@@ -240,7 +242,7 @@ export const SHOTS:Shot[]=[
   },
   {
     "id": "S07",
-    "layout": "archLight",
+    "layout": "dataCluster",
     "title": "冬至能晒{几小时}",
     "bg": {
       "src": "media/gen/water_stain.jpg",
@@ -248,27 +250,42 @@ export const SHOTS:Shot[]=[
       "blur": 0
     },
     "data": {
-      "sceneText": {
-        "arch": [
-          "5.0小时",
-          "冬至示例"
-        ],
-        "n0": [
-          "朝南优先"
-        ],
-        "n1": [
-          "西晒遮阳"
-        ],
-        "n2": [
-          "楼距靠前"
-        ]
+      "hero": {
+        "label": "冬至日照 · 示例",
+        "v": "5.0",
+        "unit": "小时",
+        "sub": "朝南户型参考"
+      },
+      "items": [
+        {
+          "k": "朝南优先",
+          "v": "晒得足",
+          "icon": "sun"
+        },
+        {
+          "k": "西晒遮阳",
+          "v": "夏天热",
+          "icon": "building"
+        },
+        {
+          "k": "楼距靠前",
+          "v": "看遮挡",
+          "icon": "search"
+        }
+      ],
+      "pill": {
+        "t": "实地看一眼"
       }
     },
     "at": {
       "ms": 30000
     },
     "anchors": {
-      "entry": 7
+      "entry": 7,
+      "r0": "五小时",
+      "r1": "朝南",
+      "r2": "西晒",
+      "r3": "楼距"
     }
   },
   {
@@ -360,7 +377,13 @@ export const SHOTS:Shot[]=[
       "blur": 0
     },
     "data": {
-      "line": "不选优点最多的",
+      "eyebrow": "今天记住这句",
+      "line": "不选{优点}最多的",
+      "points": [
+        "先列最在意的三件事",
+        "每套房按三条打分",
+        "缺点能接受再下手"
+      ],
       "note": "选缺点也能接受的",
       "account": "极限小滕 · 房产知识科普"
     },

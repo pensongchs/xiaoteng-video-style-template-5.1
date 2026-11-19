@@ -1,7 +1,7 @@
 import {getInputProps} from 'remotion';
 export const COLOR = {
   ink: '#0E1420', graphite: '#1A2130', warm: '#F3F6FB', sub: 'rgba(226,233,243,0.80)',
-  gold: '#5B9BFF', goldHi: '#9CC2FF', goldDeep: '#2F6BFF', coral: '#FF6B5E', green: '#2DD4BF', pearlInk: '#1d1b19',
+  gold: '#5B9BFF', goldHi: '#9CC2FF', goldDeep: '#2F6BFF', coral: '#FF6B5E', green: '#2DD4BF', pearlInk: '#F5F8FC',
 };
 export const FONT = {title: 'PuHui', body: 'Health', num: "ArialB, Arial, 'Helvetica Neue', Helvetica, sans-serif"};
 /** 字号 px @1920×1080。正文/说明 ≥34，标签/胶囊/序号/面积 ≥28，房间名 ≥30 */
@@ -54,7 +54,6 @@ export type FogTone = 'champ' | 'paper' | 'navy' | 'tea' | 'clay';
 type ToneDef = {name: string; fill0: string; fill1: string; light: boolean; acc: string; accHi: string};
 type PaletteDef = {id: string; name: string; tones: Record<FogTone, ToneDef>; primary: string};
 const D = (name: string, fill0: string, fill1: string, acc: string, accHi: string): ToneDef => ({name, fill0, fill1, light: false, acc, accHi});
-const L = (name: string, fill0: string, fill1: string, acc: string, accHi: string): ToneDef => ({name, fill0, fill1, light: true, acc, accHi});
 export const PALETTES: Record<string, PaletteDef> = {
   // A 墨蓝·电光：全部中深透明玻璃，冷静、统一；语义色只在描边/数字/图标上出现。
   inkBlue: {id: 'inkBlue', name: '墨蓝·电光', primary: '#5B9BFF', tones: {
@@ -64,21 +63,21 @@ export const PALETTES: Record<string, PaletteDef> = {
     clay:  D('暗枫·风险', 'rgba(86,52,60,0.70)', 'rgba(44,28,38,0.80)', '#FF6B5E', '#FFA79C'),
     champ: D('暮紫·重点', 'rgba(66,58,116,0.72)', 'rgba(32,30,68,0.80)', '#9D8CFF', '#CBC1FF'),
   }},
-  // B 石墨·冰白混排：中性信息用冷冰白小卡，数据/决策/重点用深色卡，一明一暗形成层级。
-  graphiteIce: {id: 'graphiteIce', name: '石墨·冰白', primary: '#3B82F6', tones: {
-    paper: L('冰白', 'rgba(244,247,251,0.84)', 'rgba(216,224,236,0.74)', '#3B82F6', '#2563EB'),
+  // B 石墨·冰灰：整套深色玻璃（5.1.1 起不再有浅色卡面，卡内一律浅色字），中性用冰灰石墨，其余沿用 A 的语义色。
+  graphiteIce: {id: 'graphiteIce', name: '石墨·冰灰', primary: '#3B82F6', tones: {
+    paper: D('冰灰石墨', 'rgba(92,102,122,0.72)', 'rgba(52,60,76,0.80)', '#C7D2E3', '#EAF0F8'),
     navy:  D('石墨·数据', 'rgba(56,62,76,0.78)', 'rgba(26,30,40,0.84)', '#5B9BFF', '#9CC2FF'),
     tea:   D('深青·决策', 'rgba(24,80,86,0.76)', 'rgba(12,42,50,0.84)', '#2DD4BF', '#8DEBDD'),
-    clay:  L('冰白·风险', 'rgba(246,246,249,0.86)', 'rgba(222,224,232,0.76)', '#E5484D', '#C93338'),
+    clay:  D('石墨·风险', 'rgba(96,62,70,0.72)', 'rgba(52,34,44,0.80)', '#FF6B5E', '#FFA79C'),
     champ: D('靛紫·重点', 'rgba(58,52,108,0.78)', 'rgba(28,26,62,0.84)', '#9D8CFF', '#CBC1FF'),
   }},
-  // C 冰川·浅钛：全浅色冷调玻璃，适合偏暗的夜景/室内背景；语义色做顶描边与数字。
-  glacier: {id: 'glacier', name: '冰川·浅钛', primary: '#2F6BFF', tones: {
-    paper: L('浅钛', 'rgba(240,244,249,0.84)', 'rgba(208,217,230,0.74)', '#64748B', '#334155'),
-    navy:  L('冰蓝·数据', 'rgba(232,240,255,0.86)', 'rgba(190,210,242,0.76)', '#2F6BFF', '#1D4ED8'),
-    tea:   L('冰青·决策', 'rgba(230,246,245,0.86)', 'rgba(186,224,222,0.76)', '#0E9F94', '#0B766E'),
-    clay:  L('雾灰·风险', 'rgba(244,243,246,0.86)', 'rgba(218,216,224,0.76)', '#E5484D', '#B42318'),
-    champ: L('薰衣·重点', 'rgba(238,236,255,0.86)', 'rgba(204,200,240,0.76)', '#6D5BEF', '#4C3BCF'),
+  // C 冰川·钛蓝：偏亮的深色玻璃，适合偏暗的夜景/室内背景；同样只用浅色字。
+  glacier: {id: 'glacier', name: '冰川·钛蓝', primary: '#2F6BFF', tones: {
+    paper: D('冰钛', 'rgba(78,98,126,0.74)', 'rgba(44,58,80,0.82)', '#B8C8DE', '#E4ECF7'),
+    navy:  D('冰蓝·数据', 'rgba(48,92,164,0.74)', 'rgba(26,52,104,0.82)', '#5B9BFF', '#9CC2FF'),
+    tea:   D('冰青·决策', 'rgba(30,112,118,0.72)', 'rgba(18,66,78,0.82)', '#2DD4BF', '#8DEBDD'),
+    clay:  D('雾红·风险', 'rgba(110,70,82,0.72)', 'rgba(58,38,50,0.82)', '#FF6B5E', '#FFA79C'),
+    champ: D('薰衣·重点', 'rgba(82,74,150,0.74)', 'rgba(44,40,100,0.82)', '#9D8CFF', '#CBC1FF'),
   }},
 };
 const pickPalette = (): PaletteDef => {
@@ -89,14 +88,12 @@ const pickPalette = (): PaletteDef => {
 export const PALETTE = pickPalette();
 /** 表面明暗决定文字/线条色；语义色在深底用亮版、浅底用深版。 */
 const SURF = {
-  dark: {ink: '#F3F6FB', sub: 'rgba(226,233,243,0.84)', faint: 'rgba(214,224,238,0.56)', line: 'rgba(255,255,255,0.14)', track: 'rgba(255,255,255,0.14)', tick: 'rgba(226,233,243,0.5)', well: 'rgba(255,255,255,0.06)',
+  dark: {ink: '#F3F6FB', sub: 'rgba(230,237,247,0.92)', faint: 'rgba(214,226,242,0.78)', line: 'rgba(255,255,255,0.14)', track: 'rgba(255,255,255,0.14)', tick: 'rgba(226,233,243,0.5)', well: 'rgba(255,255,255,0.06)',
     blue: '#7FB2FF', teal: '#4FE0CC', red: '#FF8A7E', violet: '#B7A9FF', plat: '#D5DEEA', edge: 'rgba(214,228,255,0.26)', top: 'rgba(255,255,255,0.20)', hl: 'rgba(255,255,255,0.10)'},
-  light: {ink: '#142033', sub: 'rgba(28,42,64,0.82)', faint: 'rgba(28,42,64,0.56)', line: 'rgba(20,32,51,0.14)', track: 'rgba(20,32,51,0.10)', tick: 'rgba(20,32,51,0.45)', well: 'rgba(20,32,51,0.05)',
-    blue: '#1D5BD8', teal: '#0B7F76', red: '#C9302C', violet: '#5B48D6', plat: '#475569', edge: 'rgba(255,255,255,0.78)', top: 'rgba(255,255,255,0.92)', hl: 'rgba(255,255,255,0.34)'},
 };
 /** 卡片 CSS 变量：子元素用 var(--ink) 等即可随卡片明暗切换。--c-gold 是「主强调」（原暖金的角色，现为本卡语义色）。 */
 export const toneVars = (tone: FogTone): Record<string, string> => {
-  const t = PALETTE.tones[tone], s = t.light ? SURF.light : SURF.dark;
+  const t = PALETTE.tones[tone], s = SURF.dark;
   const keyAcc = t.light ? t.accHi : t.accHi;
   return {'--ink': s.ink, '--sub': s.sub, '--faint': s.faint, '--line': s.line, '--track': s.track, '--tick': s.tick, '--well': s.well,
     '--acc': t.light ? t.accHi : t.acc, '--acc-hi': keyAcc, '--acc-raw': t.acc,
@@ -105,8 +102,9 @@ export const toneVars = (tone: FogTone): Record<string, string> => {
 };
 export const FOG = Object.fromEntries((Object.keys(PALETTE.tones) as FogTone[]).map((k) => {
   const t = PALETTE.tones[k];
-  return [k, {name: t.name, fill0: t.fill0, fill1: t.fill1, ink: 'var(--ink)', inkHex: t.light ? SURF.light.ink : SURF.dark.ink, accent: 'var(--acc)', light: t.light, acc: t.acc}];
+  return [k, {name: t.name, fill0: t.fill0, fill1: t.fill1, ink: 'var(--ink)', inkHex: SURF.dark.ink, accent: 'var(--acc)', light: false, acc: t.acc}];
 })) as Record<FogTone, {name: string; fill0: string; fill1: string; ink: string; inkHex: string; accent: string; light: boolean; acc: string}>;
+
 export const FOG_GRAIN = 'none';
 export const fogFill = (tone: FogTone = 'paper', lift = false) => {
   const p = FOG[tone];
@@ -147,4 +145,23 @@ export const GLASS = {
 };
 
 /** 5.1 标题/字幕强调色（替代原暖金）：冰银蓝。深底用浅冰蓝，亮底用沉稳钴蓝。不发光、不霓虹。 */
-export const HILITE = {dark: '#BCD6FF', bright: '#1F56C4'};
+export const HILITE = {dark: '#BCD6FF', bright: '#1F56C4'}; // bright 仅作历史令牌保留；5.1.1 起正片文字一律用 dark（冰蓝），不再有深色字
+
+/** 5.1.1 小卡统一字阶（px @1920×1080）。小卡按「卡高」分三档，由 Tile 的 size 属性下发；
+ *  卡内标题 / 数值 / 标签 / 说明只能取本表字号，内边距、行高、图标、圆角同表。禁止在小卡里手写其他字号。 */
+export const CARD_SIZE = {S: {maxH: 116}, M: {maxH: 200}, L: {maxH: 380}} as const;
+export type CardSize = keyof typeof CARD_SIZE;
+export const CARD_TYPE: Record<CardSize, {title: number; value: number; label: number; caption: number; padX: number; padY: number; gap: number; lh: number; icon: number; radius: number}> = {
+  S: {title: 36, value: 44, label: 28, caption: 28, padX: 24, padY: 14, gap: 10, lh: 1.3, icon: 52, radius: 20},
+  M: {title: 40, value: 56, label: 28, caption: 32, padX: 28, padY: 20, gap: 12, lh: 1.3, icon: 60, radius: 24},
+  L: {title: 48, value: 120, label: 30, caption: 34, padX: 36, padY: 30, gap: 14, lh: 1.25, icon: 72, radius: 28},
+};
+/** 字阶里所有允许的字号（DOM 检查：小卡内文字 font-size 必须落在所属档位的取值里）。 */
+export const CARD_TYPE_SIZES = (s: CardSize) => [...new Set(Object.values(CARD_TYPE[s]).slice(0, 4))];
+/** 禁止出现在卡面/正文上的「近黑」文字色：相对亮度 < 0.18 视为近黑。检查脚本据此扫源码与 DOM。 */
+export const NEAR_BLACK_L = 0.18;
+
+/** 5.1.1 图表字阶（px @1920×1080）：数值标签 / 重点数值 / 类目标签 / 刻度 / 单位。图表一律放在深色玻璃面板（data-viz）内，直接标数值。 */
+export const CHART_TYPE = {value: 76, valueKey: 96, label: 38, tick: 28, unit: 34, rowValue: 52, rowValueKey: 64};
+/** 图表配色（深色面板上）：普通柱/点用中性冰灰，重点用冰蓝 HILITE。 */
+export const CHART_INK = {bar: 'rgba(196,212,236,0.62)', barTop: 'rgba(236,242,250,0.9)', axis: 'rgba(236,242,250,0.78)', grid: 'rgba(236,242,250,0.14)', key: '#BCD6FF', keyDeep: '#6FA2F5', line: '#8DB8FF'};

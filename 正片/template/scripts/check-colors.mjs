@@ -62,7 +62,7 @@ const write = process.argv.includes('--write-allowlist');
 const current = collect();
 if (write) {
   writeFileSync(lockPath, JSON.stringify({
-    revision: '5.1-2026-11-17',
+    revision: '5.1.1-2026-11-18',
     note: '令牌文件之外的现存颜色冻结。新增颜色必须改用 tokens.ts / CSS 变量，不得手写。禁止把暖金、暖白、土黄、棕粉填回正片卡片和字幕。',
     files: current,
   }, null, 2) + '\n');

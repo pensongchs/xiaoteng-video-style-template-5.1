@@ -51,7 +51,7 @@ export const ChecklistFill: React.FC<{r: Rect; items: {t: string; tone?: string}
       return <div key={i} className={txs} style={{...LG(cur ? 0.2 : 0.12, cur ? TINT[it.tone ?? 'gold'] : undefined), left: r.x, top: r.y + 130 + i * (rowH + 16), width: r.w, height: rowH, padding: '0 36px', display: 'flex', alignItems: 'center', gap: 28,
         opacity: Math.min(1, p) * (on && !cur ? 0.78 : 1), transform: `translateX(${(1 - p) * 60}px) ${breathe(f, i, 2)}`}}>
         <div style={{width: 50, height: 50, borderRadius: 14, border: '2px solid rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? ACC[it.tone ?? 'gold'] : 'transparent'}}>
-          <span style={{...T, fontSize: 34, color: COLOR.graphite, transform: `scale(${ck})`}}>✓</span></div>
+          <span style={{...T, fontSize: 34, color: COLOR.pearlInk, transform: `scale(${ck})`}}>✓</span></div>
         <div style={{...B, fontSize: 40}}>{it.t}</div>
         <Sheen at={st(i) + 8} />
       </div>; })}

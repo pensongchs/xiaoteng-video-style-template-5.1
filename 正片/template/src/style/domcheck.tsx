@@ -1,7 +1,8 @@
 // 渲染期 DOM 检查（仅 --props='{"check":true}' 时启用）：字号下限 / 文字填充率 / 行高 / 溢出 / 文字必须落在版式区内
 import React, {useEffect, useState} from 'react';
 import {continueRender, delayRender} from 'remotion';
-import {MIN_FONT, RULE} from './tokens';
+import {CARD_TYPE_SIZES, MIN_FONT, NEAR_BLACK_L, RULE, type CardSize} from './tokens';
+import {BIG_CARD_AREA} from './layouts.ts';
 import type {Rect} from './grid.ts';
 
 const textRects = (root: Element) => {
@@ -12,6 +13,9 @@ const textRects = (root: Element) => {
   return out;
 };
 const union = (rs: DOMRect[]) => rs.length ? {l: Math.min(...rs.map((r) => r.left)), r: Math.max(...rs.map((r) => r.right)), t: Math.min(...rs.map((r) => r.top)), b: Math.max(...rs.map((r) => r.bottom))} : null;
+const lum = (c: string) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return 1; const v = m[1].split(/[ ,\/]+/).filter(Boolean).map(Number);
+  if (v.length > 3 && v[3] < 0.3) return 1; const f = (x: number) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(v[0]) + 0.7152 * f(v[1]) + 0.0722 * f(v[2]); };
 const blockOf = (el: Element): Element => { let e: Element | null = el; while (e && getComputedStyle(e).display.startsWith('inline')) e = e.parentElement; return e ?? el; };
 
 export const DomCheck: React.FC<{id: string; zones: Record<string, Rect>}> = ({id, zones}) => {
@@ -25,6 +29,11 @@ export const DomCheck: React.FC<{id: string; zones: Record<string, Rect>}> = ({i
         const txt = n.textContent?.trim(); if (!txt) continue; const el = n.parentElement!; if (el.closest('style,script,[data-deco],[data-sub]')) continue;
         const cs = getComputedStyle(el); const fs = parseFloat(cs.fontSize);
         const role = el.closest('[data-role]')?.getAttribute('data-role');
+        // 5.1.1：不允许近黑文字（卡面/正文一律浅色或色调高亮）
+        if (lum(cs.color) < NEAR_BLACK_L) errs.push(`近黑文字 ${cs.color}「${txt.slice(0, 12)}」`);
+        // 5.1.1：小卡内文字字号必须取自该档字阶表
+        const cardEl = el.closest('[data-card]'); const size = cardEl?.getAttribute('data-card') as CardSize | undefined;
+        if (size && !CARD_TYPE_SIZES(size).some((z) => Math.abs(z - fs) < 0.6)) errs.push(`${size} 卡字号 ${fs}px 不在字阶 [${CARD_TYPE_SIZES(size).join('/')}]「${txt.slice(0, 12)}」`);
         if (fs < MIN_FONT.any - 0.5) errs.push(`字号过小 ${fs}px「${txt.slice(0, 12)}」`);
         else if (role === 'body' && fs < MIN_FONT.body - 0.5) errs.push(`正文字号 ${fs}px < ${MIN_FONT.body}「${txt.slice(0, 12)}」`);
         else if (role === 'room' && fs < MIN_FONT.room - 0.5) errs.push(`房间名 ${fs}px < ${MIN_FONT.room}「${txt.slice(0, 12)}」`);
@@ -46,6 +55,17 @@ export const DomCheck: React.FC<{id: string; zones: Record<string, Rect>}> = ({i
         if (!u) return; const ratio = (u.r - u.l) / box.width;
         if (ratio > RULE.fillMax + 0.005) errs.push(`填充率 ${(ratio * 100).toFixed(0)}% > ${RULE.fillMax * 100}%（${c.getAttribute('data-fit')}「${(c.textContent || '').slice(0, 12)}」）`);
         if (c.scrollWidth > c.clientWidth + 1 || c.scrollHeight > c.clientHeight + 1) errs.push(`容器溢出（${c.getAttribute('data-fit')}「${(c.textContent || '').slice(0, 12)}」）`);
+      });
+      // 5.1.1：大卡（面积 > BIG_CARD_AREA）必须含图/视频/图表（img、video、canvas、[data-viz]），纯文字大卡不允许
+      document.querySelectorAll('[data-card],[data-mg-card]').forEach((c) => {
+        const b = c.getBoundingClientRect(); const area = b.width * b.height;
+        if (area > BIG_CARD_AREA && !c.querySelector('img,video,canvas,[data-viz],[data-media]')) errs.push(`纯文字大卡 ${Math.round(b.width)}×${Math.round(b.height)}（> ${BIG_CARD_AREA / 1000}k px²）「${(c.textContent || '').slice(0, 12)}」：大卡必须放图`);
+      });
+      // 5.1.1：任何带毛玻璃（backdrop-filter）的面板，面积 > BIG_CARD_AREA 又不含图/视频/图表，也算纯文字大卡（覆盖旧版式手写的玻璃卡）
+      document.querySelectorAll('div').forEach((c) => {
+        if (c.closest('[data-deco],[data-viz]') || c.hasAttribute('data-card') || c.hasAttribute('data-mg-card')) return;
+        const cs = getComputedStyle(c); const bf = cs.backdropFilter || (cs as any).webkitBackdropFilter; if (!bf || bf === 'none') return;
+        const b = c.getBoundingClientRect(); if (b.width * b.height > BIG_CARD_AREA && !c.querySelector('img,video,canvas,[data-viz],[data-media]')) errs.push(`纯文字大玻璃面板 ${Math.round(b.width)}×${Math.round(b.height)}「${(c.textContent || '').slice(0, 12)}」：大面板必须放图或图表`);
       });
       console.log(`CHECK|${id}|${JSON.stringify(errs)}`);
       continueRender(h);

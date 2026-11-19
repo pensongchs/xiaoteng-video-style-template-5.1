@@ -3,7 +3,7 @@
 import React from 'react';
 import {useCurrentFrame, interpolate} from 'remotion';
 import {Count, glassMat} from './components';
-import {FONT, FROST, glassEnter as enter, type GlassEnterKind as EnterKind} from './tokens';
+import {CHART_INK, FONT, FROST, glassEnter as enter, type GlassEnterKind as EnterKind} from './tokens';
 import type {Rect} from './grid.ts';
 import {PropertyArt,inferVisual} from './illustrations';
 import {PhotoCutout} from './PhotoCutout';
@@ -65,15 +65,17 @@ type Part = {k: string; v: number; dec?: number; unit: string; pct: number; s: s
 export const PaymentSplit: React.FC<{R: Record<string, Rect>; total: {k: string; v: number; unit: string; s?: string}; parts: Part[]; st: Starts; dur?: number}> = ({R, total, parts, st, dur}) => {
   const f = useCurrentFrame(); const top = R.total, low = R.parts; const n = parts.length;
   const p0 = useEnter(st(0) - 12); const split = c01(enter(f, st(0) + 4, 'soft'));
-  const barX = top.x + 560, barW = top.w - 560 - 48, sum = parts.reduce((a, b) => a + b.pct, 0); const g = 14 * split;
+  const card = {x: top.x, y: top.y + (top.h - 150) / 2, w: 540, h: 150}, strip = {x: top.x + 580, y: top.y + (top.h - 112) / 2, w: top.w - 580, h: 112};
+  const barX = strip.x + 36, barW = strip.w - 72, sum = parts.reduce((a, b) => a + b.pct, 0); const g = 14 * split;
   const segW = parts.map((p) => (barW - g * (n - 1)) * p.pct / sum); const segX = segW.map((_, i) => barX + segW.slice(0, i).reduce((a, b) => a + b, 0) + g * i);
   const cw = (low.w - 40 * (n - 1)) / n; const fill = c01(enter(f, st(0) - 6, 'soft'));
-  const segBg = (t?: Tone) => t === 'coral' ? 'linear-gradient(90deg,var(--c-coral),var(--c-coral))' : t === 'gold' ? FROST.goldFill : 'linear-gradient(90deg,var(--faint),var(--faint))';
+  const segBg = (t?: Tone) => t === 'coral' ? 'linear-gradient(90deg,var(--c-coral),var(--c-coral))' : t === 'gold' ? `linear-gradient(90deg,${CHART_INK.key},${CHART_INK.key})` : `linear-gradient(90deg,${CHART_INK.keyDeep},${CHART_INK.keyDeep})`;
   return <>
-    <div style={{...frost('blue'), left: top.x, top: top.y, width: top.w, height: top.h, opacity: c01(p0), transform: `translateY(${(1 - p0) * 30}px) scale(${enterScale(p0)})`}}>
-      <div style={{position: 'absolute', left: 44, top: 0, bottom: 0, display: 'flex', alignItems: 'center', gap: 24}}>
+    <div data-viz style={{...frost('none', true), left: strip.x, top: strip.y, width: strip.w, height: strip.h, opacity: c01(p0), transform: `translateY(${(1 - p0) * 30}px)`}} />
+    <div style={{...frost('blue'), left: card.x, top: card.y, width: card.w, height: card.h, opacity: c01(p0), transform: `translateY(${(1 - p0) * 30}px) scale(${enterScale(p0)})`}}>
+      <div style={{position: 'absolute', left: 36, top: 0, bottom: 0, display: 'flex', alignItems: 'center', gap: 20}}>
         <div style={{...B, fontSize: 34, color: FROST.sub}}>{total.k}</div>
-        <div style={{...N, fontSize: 84, color: FROST.ink}}><Count to={total.v} start={st(0) - 10} /><span style={{...B, fontSize: 36, marginLeft: 8}}>{total.unit}</span></div>
+        <div style={{...N, fontSize: 80, color: FROST.ink}}><Count to={total.v} start={st(0) - 10} /><span style={{...B, fontSize: 36, marginLeft: 8}}>{total.unit}</span></div>
       </div>
       
     </div>
@@ -85,13 +87,13 @@ export const PaymentSplit: React.FC<{R: Record<string, Rect>; total: {k: string;
           strokeDasharray="1 1" data-link={'part'+i} strokeDashoffset={1 - a} />; })}
     </svg>
     {parts.map((p, i) => { const q = useEnter(st(i) + 6); const hi = hiOf(f, i, n, st); const tone = p.tone ?? 'blue';
-      return <div key={i} style={{...frost(tone), left: low.x + i * (cw + 40), top: low.y, width: cw, height: low.h, padding: '36px 40px',
+      return <div key={i} style={{...frost(tone), left: low.x + i * (cw + 40), top: low.y, width: cw, height: low.h, padding: '26px 36px',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: c01(q), transform: `translateY(${(1 - q) * 60}px) scale(${enterScale(q)})`}}>
         <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 14}}><div style={{width: 18, height: 18, borderRadius: 9, background: segBg(p.tone)}} /><div style={{...T, fontSize: 44}}>{p.k}</div></div>
           <Pill tone={tone === 'none' ? 'gold' : tone}>约 {p.pct}%</Pill>
         </div>
-        <div style={{...N, fontSize: 88, color: tone === 'coral' ? FROST.coral : tone === 'gold' ? FROST.gold : FROST.ink}}>
+        <div style={{...N, fontSize: 80, color: tone === 'coral' ? FROST.coral : tone === 'gold' ? FROST.gold : FROST.ink}}>
           <Count to={p.v} start={st(i) + 8} dec={p.dec} sep={p.sep} /><span style={{...B, fontSize: 36, marginLeft: 8, color: FROST.ink}}>{p.unit}</span></div>
         <Sub>{p.s}</Sub>
         
@@ -193,11 +195,11 @@ export const UnitCompare: React.FC<{R: Record<string, Rect>; A: Unit; B: Unit; s
 /* ============ 6 priceStep 单价 × 面积 = 总价 台阶 ============ */
 type Step = {k: string; v: number; dec?: number; unit: string; s: string};
 export const PriceStep: React.FC<{r: Rect; steps: Step[]; ops?: string[]; st: Starts}> = ({r, steps, ops = ['×', '='], st}) => {
-  const f = useCurrentFrame(); const n = steps.length; const opW = 150; const w = (r.w - opW * (n - 1)) / n; const base = r.y + r.h;
-  const hs = steps.map((_, i) => 300 + (r.h - 300) * (i / Math.max(1, n - 1)));
+  const f = useCurrentFrame(); const n = steps.length; const opW = 150; const w = Math.min(320, (r.w - opW * (n - 1)) / n); const x0 = r.x + (r.w - (n * w + (n - 1) * opW)) / 2; const base = r.y + r.h - 70;
+  const hs = steps.map((_, i) => 270 + 60 * (i / Math.max(1, n - 1)));
   const topOf = (i: number) => base - hs[i];
   return <>
-    {steps.map((s, i) => { const p = c01(enter(f, st(i), 'soft')); const pe = enter(f, st(i)); const last = i === n - 1; const x = r.x + i * (w + opW);
+    {steps.map((s, i) => { const p = c01(enter(f, st(i), 'soft')); const pe = enter(f, st(i)); const last = i === n - 1; const x = x0 + i * (w + opW);
       return <div key={i} style={{...frost(last ? 'gold' : i === 0 ? 'blue' : 'green'), left: x, top: topOf(i), width: w, height: hs[i], padding: '30px 36px', display: 'flex', flexDirection: 'column', gap: 10,
         clipPath: p === 1 ? undefined : `inset(${(1 - p) * 100}% 0 0 0 round 26px)`, transform: `translateY(${(1 - pe) * 40}px)`, borderBottomLeftRadius: 10, borderBottomRightRadius: 10}}>
         <div style={{...B, fontSize: 34, color: FROST.sub}}>{s.k}</div>
@@ -205,7 +207,7 @@ export const PriceStep: React.FC<{r: Rect; steps: Step[]; ops?: string[]; st: St
         <Sub style={{marginTop: 'auto'}}>{s.s}</Sub>
         
       </div>; })}
-    {ops.slice(0, n - 1).map((o, i) => { const p = enter(f, Math.max(st(i + 1) - 4, settleAt(st(i))), 'chip'); const x = r.x + (i + 1) * w + i * opW + opW / 2;
+    {ops.slice(0, n - 1).map((o, i) => { const p = enter(f, Math.max(st(i + 1) - 4, settleAt(st(i))), 'chip'); const x = x0 + (i + 1) * w + i * opW + opW / 2;
       return <div key={'o' + i} style={{...frost('none', true, 40), left: x - 40, top: base - 220, width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
         opacity: c01(p), transform: `scale(${enterScale(p)})`}}><span style={{...N, fontSize: 44, color: FROST.gold}}>{o}</span></div>; })}
 
@@ -220,14 +222,19 @@ export const DecisionFork: React.FC<{R: Record<string, Rect>; q: string; yes: Br
   const x0 = Q.x + Q.w / 2, y0 = Q.y + Q.h; const ends = [R.L, R.R].map((b) => ({x: b.x + b.w / 2, y: b.y}));
   const path = (e: {x: number; y: number}) => `M${x0},${y0} C${x0},${y0 + 110} ${e.x},${e.y - 110} ${e.x},${e.y}`;
   const br = (b: Branch, r: Rect, j: number) => {
-    const p=enter(f,st(1+j)),hasItems=b.items.length>0,h=hasItems?r.h:264;
+    const p=enter(f,st(1+j)),hasItems=b.items.length>0,headH=130;
     const icon=b.visual||(b.mark==='+'?'add':b.mark==='−'?'subtract':inferVisual(b.k));
-    return <div key={j} style={{...frost(j?'blue':'none'),left:r.x,top:r.y,width:r.w,height:h,padding:36,opacity:p,transform:`translateY(${(1-p)*42}px)`,overflow:'visible'}}>
-      <div style={{position:'absolute',left:36,top:30,width:72,height:72,borderRadius:22,background:FROST.badge[b.tone],color:'#EEF3FA',display:'flex',alignItems:'center',justifyContent:'center',...N,fontSize:48,boxShadow:'0 10px 18px -6px rgba(7,23,36,.38)'}}>{b.mark}</div>
-      <div style={{position:'absolute',left:hasItems?130:36,top:hasItems?38:138,fontFamily:FONT.title,fontSize:hasItems?44:54,lineHeight:1.3,color:FROST.ink}}>{b.k}</div>
-      <div style={{position:'absolute',right:24,top:hasItems?24:38,width:hasItems?132:224,height:hasItems?112:182}}><PhotoCutout src={b.cutout} kind={icon} color="var(--acc)"/></div>
-      {b.items.map((text,k)=><div key={k} data-role="body" style={{position:'absolute',left:40,top:126+k*50,fontFamily:FONT.body,fontWeight:700,fontSize:36,lineHeight:1.35,color:FROST.ink,opacity:enter(f,st(1+j)+8+k*6)}}>{text}</div>)}
-    </div>;
+    // 5.1.1：分支拆成「标题小卡 + 要点小卡」两张，面积都 < 12 万，不再是整块纯文字大卡
+    return <React.Fragment key={j}>
+      <div style={{...frost(j?'blue':'none'),left:r.x,top:r.y,width:r.w,height:headH,opacity:p,transform:`translateY(${(1-p)*42}px)`,overflow:'visible'}}>
+        <div style={{position:'absolute',left:30,top:(headH-72)/2,width:72,height:72,borderRadius:22,background:FROST.badge[b.tone],color:'#EEF3FA',display:'flex',alignItems:'center',justifyContent:'center',...N,fontSize:48,boxShadow:'0 10px 18px -6px rgba(7,23,36,.38)'}}>{b.mark}</div>
+        <div style={{position:'absolute',left:124,top:(headH-62)/2,fontFamily:FONT.title,fontSize:52,lineHeight:1.2,color:FROST.ink,whiteSpace:'nowrap'}}>{b.k}</div>
+        <div style={{position:'absolute',right:24,top:9,width:112,height:112}}><PhotoCutout src={b.cutout} kind={icon} color="var(--acc)"/></div>
+      </div>
+      {hasItems&&<div style={{...frost(j?'blue':'none',true),left:r.x,top:r.y+headH+14,width:r.w-70,height:b.items.length*52+48,opacity:p,transform:`translateY(${(1-p)*42}px)`}}>
+        {b.items.map((text,k)=><div key={k} data-role="body" style={{position:'absolute',left:36,top:24+k*52,fontFamily:FONT.body,fontWeight:700,fontSize:36,lineHeight:1.35,color:FROST.ink,whiteSpace:'nowrap',opacity:enter(f,st(1+j)+8+k*6)}}>{text}</div>)}
+      </div>}
+    </React.Fragment>;
   };
   return <>
     <div style={{...frost('none'), left: Q.x, top: Q.y, width: Q.w, height: Q.h, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: c01(p0), transform: `scale(${enterScale(p0)})`}}>
@@ -265,7 +272,7 @@ export const DistrictTags: React.FC<{R: Record<string, Rect>; tags: {t: string; 
           
         </div>; })}
     </div>
-    <div style={{...frost('none', true), left: G.x, top: G.y, width: G.w, height: G.h, opacity: c01(lp), transform: `translateX(${(1 - lp) * 40}px)`}}>
+    <div data-viz style={{...frost('none', true), left: G.x, top: G.y, width: G.w, height: G.h, opacity: c01(lp), transform: `translateX(${(1 - lp) * 40}px)`}}>
       <div style={{position: 'absolute', top: 24, width: '100%', textAlign: 'center', ...T, fontSize: 40, color: FROST.coral}}>{legend[0]}</div>
       <div style={{position: 'absolute', bottom: 24, width: '100%', textAlign: 'center', ...T, fontSize: 40, color: FROST.blue}}>{legend[1]}</div>
       <div data-deco style={{position: 'absolute', left: G.w / 2 - 14, top: barTop - G.y, width: 28, height: barH, borderRadius: 14, background: 'linear-gradient(180deg,var(--c-coral),var(--acc) 45%,#EEF3FA 70%,var(--c-blue))', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.12)'}} />
@@ -285,7 +292,7 @@ export const LoanDial: React.FC<{R: Record<string, Rect>; dial: {k: string; v: n
     const [x0, y0] = p(a0), [x1, y1] = p(a1); return `M${x0},${y0} A${rr},${rr} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1},${y1}`; };
   const n = stats.length; const g = 28; const h = (S.h - g * (n - 1)) / n;
   return <>
-    <div style={{...frost('blue'), left: D.x, top: D.y, width: D.w, height: D.h, opacity: c01(p0), transform: `scale(${enterScale(p0)})`}}>
+    <div data-viz style={{...frost('blue'), left: D.x, top: D.y, width: D.w, height: D.h, opacity: c01(p0), transform: `scale(${enterScale(p0)})`}}>
       <div style={{position: 'absolute', left: 44, top: 32, ...B, fontSize: 34, color: FROST.sub}}>{dial.k}</div>
       <svg data-deco width={D.w} height={D.h} style={{position: 'absolute', left: 0, top: 0}}>
         <path d={arc(-180, 0, rad)} fill="none" strokeWidth={26} strokeLinecap="round" style={{stroke: FROST.track}} />
@@ -333,7 +340,7 @@ export const LayerReveal: React.FC<{R: Record<string, Rect>; layers: {k: string;
           return <div key={k} style={{width: 22, height: 22, borderRadius: 11, background: on > 0.01 ? ACC[tone] : FROST.track, transform: `scale(${k < l.score ? 0.7 + 0.3 * on : 1})`}} />; })}</div>
         
       </div>; })}
-    <div style={{...frost('gold'), left: Sc.x, top: Sc.y, width: Sc.w, height: Sc.h, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22,
+    <div data-viz style={{...frost('gold'), left: Sc.x, top: Sc.y, width: Sc.w, height: Sc.h, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22,
       opacity: c01(ps), transform: `translateX(${(1 - ps) * 60}px) scale(${enterScale(ps)})`}}>
       <div style={{...B, fontSize: 34, color: FROST.sub}}>条件综合分</div>
       <div style={{position: 'relative', width: 270, height: 270}}>

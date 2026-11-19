@@ -72,11 +72,11 @@ for (const kind of ['enter','soft','chip']) {
 }
 { let prev=-1; for (let f=-30;f<=80;f+=0.25) { const p=token.glassEnter(f,0,'shaped'); assert(p>=prev&&p>=0&&p<=1); prev=p; }
   assert.equal(token.glassEnter(18,0,'shaped'),1); }
-assert.equal(layouts.DEFAULT_LAYOUTS.length,26);
-assert.equal(new Set(layouts.DEFAULT_LAYOUTS).size,26);
+assert.equal(layouts.DEFAULT_LAYOUTS.length,24);
+assert.equal(new Set(layouts.DEFAULT_LAYOUTS).size,24);
 assert.deepEqual([...new Set(GALLERY.map(s=>s.layout))].sort(), [...layouts.DEFAULT_LAYOUTS].sort());
-assert.equal(GALLERY.length,26); assert.equal(RE10.length,9); assert.equal(ARCHIVE_GALLERY.length,6);
-assert.deepEqual(RE10.map(s=>s.layout), [...layouts.ESTATE_LAYOUTS]);
+assert.equal(GALLERY.length,24); assert.equal(RE10.length,9); assert.equal(ARCHIVE_GALLERY.length,6);
+assert.deepEqual(RE10.map(s=>s.layout).filter(l=>!layouts.RETIRED_LAYOUTS.includes(l)), [...layouts.ESTATE_LAYOUTS]);
 assert.equal(layouts.canonicalLayout('outroAir'),'outroHost');
 assert(!layouts.isDefaultLayout('unitCompare'));
 assert.deepEqual(layouts.layoutRects('unitCompare'),{});
@@ -103,7 +103,7 @@ function walk(node, out, p='0', parents=[]) {
 }
 function sample(s,f) { frame=f; const out=[]; walk(ShotView({s,dur:210}),out); return out; }
 const stable=[];
-assert.equal(NEW_GALLERY.length, 17);
+assert.equal(NEW_GALLERY.length, 9);
 assert.deepEqual(NEW_GALLERY.map(s=>s.layout), [...layouts.NEW_LAYOUTS]);
 assert.deepEqual(SHOTS51.map(s=>s.layout), [...layouts.SMALL_LAYOUTS]);
 for (const s of [...GALLERY,...ARCHIVE_GALLERY,...NEW_GALLERY,...SHOTS51]) {
@@ -111,6 +111,6 @@ for (const s of [...GALLERY,...ARCHIVE_GALLERY,...NEW_GALLERY,...SHOTS51]) {
   for(let f=186;f<209;f++) assert.equal(JSON.stringify(sample(s,f)),ref,s.layout+' card/ancestor moved after settling at '+f);
   stable.push({layout:s.layout, glassElements:JSON.parse(ref).length, stableFrames:[185,208]});
 }
-const report={version:'5.1.0-tech-palette-smallcards',smallLayouts:layouts.SMALL_LAYOUTS,palette:token.PALETTE.id,status:'validated',timezone:'Asia/Shanghai',testedAt:new Date().toLocaleString('sv-SE',{timeZone:'Asia/Shanghai'}),defaultCount:26,defaultLayouts:layouts.DEFAULT_LAYOUTS,estateLayouts:layouts.ESTATE_LAYOUTS,archiveLayouts:layouts.ARCHIVE_LAYOUTS,estateCount:9,archiveCount:6,unitCompareDefault:false,material:'GLASS_V6 = FROST; GLASS.dark/light and glassMat/frost/LG same source',baseAlpha:[0.64,0.76],entryFrames:token.GLASS_ENTER_FRAMES,overshoot:false,scanbar:false,settledGeometry:stable,scope:'TS/React-tree parameter regression; actual rendered stills checked separately, not a DOM pixel measurement'};
+const report={version:'5.1.1-cards-readability',smallLayouts:layouts.SMALL_LAYOUTS,palette:token.PALETTE.id,status:'validated',timezone:'Asia/Shanghai',testedAt:new Date().toLocaleString('sv-SE',{timeZone:'Asia/Shanghai'}),defaultCount:26,defaultLayouts:layouts.DEFAULT_LAYOUTS,estateLayouts:layouts.ESTATE_LAYOUTS,archiveLayouts:layouts.ARCHIVE_LAYOUTS,estateCount:9,archiveCount:6,unitCompareDefault:false,material:'GLASS_V6 = FROST; GLASS.dark/light and glassMat/frost/LG same source',baseAlpha:[0.64,0.76],entryFrames:token.GLASS_ENTER_FRAMES,overshoot:false,scanbar:false,settledGeometry:stable,scope:'TS/React-tree parameter regression; actual rendered stills checked separately, not a DOM pixel measurement'};
 const dest=path.join(root,'检查');fs.mkdirSync(dest,{recursive:true});fs.writeFileSync(path.join(dest,'freeze-regression.json'),JSON.stringify(report,null,2)+'\n');
-console.log(`PASS: frosted glass, contextual typography and connected card geometry; monotonic 16/18/20/12f; 26 default + 6 archive + 17 new + 5 small-card groups settled; palette inkBlue; 9 estate kept; unitCompare excluded`);
+console.log(`PASS: frosted glass, contextual typography and connected card geometry; monotonic 16/18/20/12f; 24 default + 6 archive + 9 new + 5 small-card groups settled (5.1.1: text-only big cards retired); palette inkBlue; 8 estate kept; unitCompare excluded`);

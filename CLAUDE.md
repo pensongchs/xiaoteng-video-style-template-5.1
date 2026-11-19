@@ -6,7 +6,7 @@
 
 # 小滕视频风格模板5.1 · 输出约束标准
 
-中文调用名「小滕视频风格模板5.1」。视觉基准标识 `5.1-2026-11-17`。本标准是强制约束，不是建议。`AGENTS.md`、`CLAUDE.md` 与本文件内容一致。Codex / Claude / 其他 AI 代理以及人类协作者在制作、修改或复用本模板时必须遵守。
+中文调用名「小滕视频风格模板5.1」。视觉基准标识 `5.1.1-2026-11-18`。本标准是强制约束，不是建议。`AGENTS.md`、`CLAUDE.md` 与本文件内容一致。Codex / Claude / 其他 AI 代理以及人类协作者在制作、修改或复用本模板时必须遵守。
 
 上次用 Codex 调用模板时，成片没有按模板风格输出。因此：**风格必须靠已登记版式、锁定令牌和 `npm run verify` 强制执行，不能只靠文字描述重新设计。**
 
@@ -16,7 +16,7 @@
 
 ## 0. 代理必须先遵守的硬规则
 
-1. 先读本标准，并查看 `previews/current/` 样张（墨蓝电光总览、字幕前后对比、白天/夜景抽帧）。不能只凭「科技感」「玻璃」「大厂审美」四个字重新设计。
+1. 先读本标准（尤其第 3B、3A、6、7 节），并对照 `previews/current/` 定版样张：`01` 前后对比、`03` 38 款总览、`08` 图表、`09` 片尾、`10` 户型图、`04`/`05` 字幕。完整清单见该目录 README。不能只凭「科技感」「玻璃」「大厂审美」四个字重新设计。
 2. 正式镜头必须使用 `ShotView / sceneOf` 和 `src/style/layouts.ts` 里已登记的 `LayoutName`。禁止自造简版渲染器，禁止把不同版式都改成同一组手写文字卡。
 3. 颜色只来自 `正片/template/src/style/tokens.ts` 与 `subtitle-tokens.ts`（卡片用 CSS 变量 `--ink / --acc / --acc-hi` 等；标题强调用 `HILITE`；字幕用 `SUB`）。**禁止在组件、镜头数据或 props 里手写 CSS 颜色。**
 4. 默认色板锁定为 **A 墨蓝·电光 `inkBlue`**。允许的 `inputProps.palette` 只有 `inkBlue | graphiteIce | glacier`。`glacier` 仅建议夜景或深色背景；白天雾天会发白，不要当默认。
@@ -25,6 +25,7 @@
 7. 缺素材时由调用模板的 AI 补齐（见第 8 节），不能把缺口转成使用者必须自行完成的前置条件，也不能用低清、水印或示例值凑画面。
 8. 制作流程：先出片头预览 → 再出正片全片审看 → **只有用户批准后才正式导出**。机器检查通过不等于用户已经认可。
 9. **顺序与连线**（第 3A 节）：流程类卡片逐项绑定口播锚点、按口播先后入场；连线只在两端卡片停稳后，从先出现的卡画向后出现的卡，逐段长出。不满足则 verify 失败。
+10. **图卡与可读性**（第 3B 节）：大卡只放图或图表，纯文字进小卡；不得选用已退役的纯文字重卡；户型只用随包 `plan_3br2ba`；字阶取自 `CARD_TYPE` / `CHART_TYPE`；禁止近黑文字；片尾用小滕姿势、气泡和弹卡，不加关注类文字。不满足则 verify 失败。
 
 将模板安装目录记作 `SKILL_ROOT`，单期目录记作 `PROJECT_ROOT`。已有工程直接续接；没有时用：
 
@@ -98,8 +99,19 @@ node SKILL_ROOT/scripts/create-project.mjs PROJECT_ROOT
 - 入场单调缓出，16 / 18 / 20 / 12 帧，**落位后不得回弹**，不得在镜尾还在变形。
 - `FOG_GRAIN = none`；禁止颗粒、僵硬扫光、卡片落位后弹跳。
 - 卡片按内容收紧，主次清楚；正文多行行高 ≥ 1.3。短标题放大，用语义图形或抠图建立重心。不留巨型空框，不重复旁白，不编造数字填空。
-- 普通卡片是规整圆角矩形；户型、楼体、道路等保留语义轮廓，不能把 48 款都改成同一种清单。
+- 普通卡片是规整圆角矩形；户型、楼体、道路等保留语义轮廓，不能把 38 款都改成同一种清单。
 - 卡片先落位再连线：起线 = max(两端停稳) + 18 帧（停稳 = 入场 + 20），从源卡沿路径连续长到目标卡。箭头用 `GlassArrow`，不用字符箭头。详见第 3A 节。
+
+---
+
+## 3B. 图卡与可读性（5.1.1，老板 2026-11-18 复审，已强制）
+
+1. **大卡放图，文字进小卡。** 毛玻璃面板面积 > `BIG_CARD_AREA`（120 000 px²）即「大卡」。大卡里必须有图片/视频/户型图（`image`）或图表/仪表图形（`viz`，面板标 `data-viz`）；纯文字大卡 `check:constraints` 和 `verify --dom` 直接失败。文字一律放进小卡（单卡 ≤ 12 万 px²）。每期大图卡 ≤ 3 个。每个选卡池版式在 `layouts.ts` 的 `CARD_CLASS` 里登记 `image / viz / small / none / outro`。纯文字重卡版式已退役（见第 6 节），代码保留仅供旧稿渲染，镜头表里不得再选。
+2. **户型图用真实感素材**：`public/media/floorplan/plan_3br2ba.svg/.png`（`scripts/make-floorplan.mjs` 自绘，无第三方素材、无版权问题）：墙厚、门弧、窗、家具、中文房间名、mm 尺寸线、三室两厅两卫 102㎡（套内 84㎡）。`planSplit` 只用这张图（`PLAN_ASSET`），`validatePlanAsset` 检查房间名齐全，不再用手写方块凑户型。换户型要重新跑生成脚本，不得手画。
+3. **统一字阶**（`tokens.ts` 的 `CARD_TYPE`，按卡尺寸 S/M/L）：S：标题 36 / 数值 44 / 标签 28 / 说明 28，边距 24×14；M：40 / 56 / 28 / 32，边距 28×20；L：48 / 120 / 30 / 34，边距 36×30；行高 ≥ 1.25（正文 1.3）。小卡内文字字号必须取自本档字阶，`check:readability` 禁止手写，DOM 检查实测。图表字阶见 `CHART_TYPE`（数值 76、重点 96、类目 38、刻度 28、单位 34）。
+4. **不用黑字。** 卡面与正文一律浅色（`#F5F8FC` 系）或色调高亮；亮底大字用深色柔影托底而不是黑字。任何文字色相对亮度 < `NEAR_BLACK_L`（0.18）都算近黑：`check:readability` 扫源码，`verify --dom` 实测计算色。色板五个色调全部是深底浅字（旧版的浅色面已取消）。
+5. **图表**（`lineReveal` `barGlow` `rankBars` `waffle` `balance` `yearRing` `formulaCalc`）：放在深色玻璃面板里；数值直接标在柱/点旁，类目与数值字号用 `CHART_TYPE`；有明确基线/坐标轴，网格线 ≤ 3 条且很淡；普通柱/点用冰灰，重点柱/点用冰蓝 `#BCD6FF`；柱/点/行按口播顺序依次长出（锚点 `r0…`，`itemStarts`），不要同时涌出。
+6. **片尾**见第 7 节：小滕姿势 + 气泡 + 弹卡，不加关注类文字。
 
 ---
 
@@ -109,11 +121,11 @@ node SKILL_ROOT/scripts/create-project.mjs PROJECT_ROOT
 
 **1）逐项入场 = 跟口播走**
 
-- 流程类版式（`src/style/sequence-spec.ts` 的 `SEQUENTIAL_LAYOUTS`）：`timeline` `stepRail` `hexSteps` `indexTabs` `floorLadder` `priceStep` `paymentSplit` `decisionFork` `dataCluster` `noteGroup` `riskGroup` `pitfallBoard` `mediaRows` `quoteStack` `triadSoft` `formulaCalc`。
+- 流程类版式（`src/style/sequence-spec.ts` 的 `SEQUENTIAL_LAYOUTS`）：`timeline` `stepRail` `hexSteps` `floorLadder` `priceStep` `paymentSplit` `decisionFork` `dataCluster` `noteGroup` `riskGroup` `mediaRows` `triadSoft` `formulaCalc`。
 - 这些版式的**每一项**都必须在 `SHOTS[i].anchors` 里绑定「口播里说到它的那个词」（键名见 `requiredSeqKeys`：一般 `r0…r(n-1)`；`timeline` 用 `s0…`，`triadSoft` 用 `c0…`，`formulaCalc` 用 `term0…`）。`dataCluster` / `riskGroup` / `noteGroup` 的 `r0` 是主卡（主数/表头/引言），`r1…` 是条目。
 - 锚点按口播先后**严格递增**：第 i+1 项的词必须在第 i 项之后说到。缺项、两项颠倒、两项绑同一个词，`npm run verify` 失败。
 - 没有锚点（仅样例/预览）时，组件按序号兜底错峰，间隔 14–36 帧（随镜长），**不许多项同时出现**；兜底只用于样例，正式镜头不能靠兜底。
-- 当前高亮（timeline 的当前步、stepRail 的点亮步、mediaRows/quoteStack 的当前行）只随口播**单调前进**：第 i 项入场之前不得高亮。
+- 当前高亮（timeline 的当前步、stepRail 的点亮步、mediaRows 的当前行）只随口播**单调前进**：第 i 项入场之前不得高亮。
 
 **2）连线 = 两端都停稳之后，从先出现的卡画向后出现的卡**
 
@@ -171,7 +183,7 @@ anchors: {r0: '小区', r1: '楼栋', r2: '户型', r3: '成交'}
 
 先判断台词在讲什么，再核对数据是否真实、条目是否落在容量内。没有真实比例 / 金额 / 利率 / 评分，就不要选必须靠这些数据的图表。数字只来自用户数据、已核实来源或明确的口播假设（假设须标示意口径）。
 
-**内容短，优先小卡组合（5.1 新增，已登记入 `POOL_LAYOUTS`，共 48 款可选）：**
+**内容短，优先小卡组合（5.1 新增，已登记入 `POOL_LAYOUTS`，共 38 款可选）：**
 
 | 内容类型 | 首选 layout | 匹配键 | 容量 |
 |---|---|---|---|
@@ -181,29 +193,29 @@ anchors: {r0: '小区', r1: '楼栋', r2: '户型', r3: '成交'}
 | 风险、避坑 2–3 条 | `riskGroup` | `small:risk` | 2–3 |
 | 要点、便笺、政策提示 2–3 条 | `noteGroup` | `small:notes` | 2–3 |
 
-**内容更重、或小卡容量不够时，使用原 43 款（26 默认 + 17 扩展）：**
+**内容更重、或小卡容量不够时，使用默认 24 + 新增 9（共 33 款，其中大卡只能放图/图表，见第 3B 节；`quoteStack` `pitfallBoard` `ticketStub` `indexTabs` `slashCompare` `archLight` `contractNote` `buildingSection` `parkingLines` `familyPlan` 已退役，改用括号内替代版式）：**
 
 | 内容类型 | 首选 layout | 备选 |
 |---|---|---|
 | 开场大标题 / 一句主张 | `titleFloat` | — |
 | 单一大数字 | `bareNumber` | `dataCluster`（若还有分项） |
-| 左右对比（更重的分数/等待） | `splitVs` / `waitVs` | `slashCompare`、`comparePair` |
+| 左右对比（更重的分数/等待） | `splitVs` / `waitVs` | `comparePair` |
 | 时间轴 / 节点 | `timeline` | `hexSteps`、`stepRail` |
-| 多行图文 | `mediaRows` | `quoteStack` |
-| 引用 / 金句叠卡 | `quoteStack` | `noteGroup` |
+| 多行图文 | `mediaRows` | `noteGroup` |
+| 引用 / 金句叠卡 | `noteGroup`（`quoteStack` 已退役） | — |
 | 圆环特征 + 一句注释 | `ringFeature` | — |
 | 三软卡并列 | `triadSoft` | — |
 | 折线 / 柱 / 排行 / 瓦片 / 天平 / 年份环 / 公式 | `lineReveal` `barGlow` `rankBars` `waffle` `balance` `yearRing` `formulaCalc` | 图表合计 ≤ 3 镜且不相邻；必须有真实数据 |
-| 楼层 | `floorLadder` | `buildingSection` |
+| 楼层 | `floorLadder` | — |
 | 付款拆分 | `paymentSplit` | `paymentCup` |
 | 配套 | `amenityOrbit` | `amenityPins` |
-| 避坑（条目多或需透镜） | `pitfallBoard` | `pitfallLens`、`riskGroup` |
+| 避坑（条目多或需透镜） | `pitfallLens` | `riskGroup`（`pitfallBoard` 已退役） |
 | 价格台阶 | `priceStep` | — |
 | 决策分叉 | `decisionFork` | — |
 | 区位标签 | `districtTags` | — |
 | 贷款仪表 | `loanDial` | `loanCurve` |
 | 条件层叠 | `layerReveal` | — |
-| 票据 / 标签页 / 合同 / 户型 / 剖面 / 车位 / 家庭 / 政策 / 问答 / 验房 | `ticketStub` `indexTabs` `contractNote` `planSplit` `buildingSection` `parkingLines` `familyPlan` `policyNotes` `qaBubbles` `inspectTags` | 见 `正片/references/版式目录.md` |
+| 户型 / 政策 / 问答 / 验房 | `planSplit`（带真实感户型图）`policyNotes` `qaBubbles` `inspectTags` | 票据→`dataCluster`，标签页→`stepRail`，合同→`riskGroup`，剖面→`floorLadder`，车位→`noteGroup`，家庭→`dataCluster` |
 | 片尾 | **`outroHost`（仅 1 次）** | `outroAir` 只是别名，不得当成新版式 |
 
 多样性（详见 `正片/references/文案匹配机制.md`，`check-episode` 强制执行）：
@@ -221,7 +233,7 @@ anchors: {r0: '小区', r1: '楼栋', r2: '户型', r3: '成交'}
 - 用户只要求做片头，就只出片头；只要求做正片，就只出正片；要求整片再按时钟拼接。
 - 独立片头 50fps、默认纯画面，不额外叠口播字幕与配音。完整成片使用源原声和定版字幕，严格保留原声时钟和用户指定的片头/正片分界。
 - 开头约 7 秒从首帧就要有明确主体和节拍：远景城市/实景、中景玻璃卡、主题抠图或语义图形、醒目标题。关键字强调在正片里用冰蓝，不要把整段铺成黄或金。
-- 片尾固定 `outroHost`：左侧小滕人物（项目素材或随包卡通形象，不擅自换人），右侧主结论玻璃板与身份栏按口播先后建立。禁止点赞 / 关注 / 收藏 / 转发按钮或引导。
+- 片尾固定 `outroHost`（5.1.1 互动版）：右侧安全区内的卡通小滕（x ≤ 1632，不压抖音按钮）按口播换姿势——挥手招呼、手指向左侧结论；头顶对话气泡给一句反应；左侧小卡逐条弹出，旁边只出图标闪光。复用随包小滕素材（`xiaoteng_wave` / `xiaoteng_point` 等），不擅自换人。**仍禁止**点赞 / 关注 / 收藏 / 转发 / 三连 / 订阅的文字、按钮或引导（`OUTRO_BAN` 正则会过滤）；互动感只靠姿势、气泡、弹卡与图标。
 - 开场音效若使用，强度参考 RMS 比人声低 20dB，只在完整视频混入，独立片头保持纯画面。
 
 ---
@@ -234,7 +246,7 @@ anchors: {r0: '小区', r1: '楼栋', r2: '户型', r3: '成交'}
 2. **背景以视频为主，辅以生成图。** 没有可用视频时，调用模板的 AI 必须主动联网寻找与逐镜文案匹配的**免费、高清、可合法使用**的实景视频，完成搜索、原页核对、授权、下载、ffprobe 检查与登记，不把取材交回使用者。
 3. **视频要求：** ≥ 1920×1080 横屏，优先中国城市或住宅实景；**优先航拍、有质感的运镜或有纹理的环境镜头，禁止随手手机拍、低清、摇晃、生活纪录风。** 时长覆盖 trim 与镜长；背景清晰、白平衡中性、无水印。相邻镜避免同一段背景与同一构图；同一视频不同 trim 可用，但不能在相邻镜重复。同一期优先多类场景轮换，按文案适配，不为凑数用无关空镜。静图背景通常 ≤ 1/3。`bg.blur = 0`，不整屏模糊。
 4. **生成图只在能加强表达的位置使用**，不是每张卡都贴一张图。图片默认优先由 AI 按文案生成；当前模型不能生图或工具不可用时，由 AI 联网查找高清原图（长边至少 1600px，从原图页下载，不用搜索缩略图或带水印预览）。
-5. **列举和对比场景用图片框排列，并加注文字标题**（如 `comparePair` 的 `img` + `name` / `tag`，或 `mediaRows`、`slashCompare` 的图框）。不要把对比做成两块纯文字。
+5. **列举和对比场景用图片框排列，并加注文字标题**（如 `comparePair` 的 `img` + `name` / `tag`，或 `mediaRows` 的图框）。不要把对比做成两块纯文字。
 6. 生成照片：当期语义、中国住宅语境、中性日光、真实自然色、单一重心；无文字、数字、招牌、logo、水印，无黄绿罩染和虚假楼盘标识。生成图不能证明真实楼盘或价格；有混淆风险时在主图内简短标注「示意」。
 7. 卡内抠图要真实透明通道、干净边缘，不是白底矩形或截图。按语义选主体，占卡宽约 25%–45%，`objectFit: contain`，与文字净距 ≥ 24px。
 8. 素材存当期 `public/media/`，并在 `media_ledger.json` 或制作资料中登记页面 URL 或生成模型、提示词、用途与授权。仓库演示资源只验证模板，不代表正式选材已经完成。
@@ -271,13 +283,16 @@ anchors: {r0: '小区', r1: '楼栋', r2: '户型', r3: '成交'}
 - 单期只改文案、素材、时间码、锚点和配置。
 - 流程类版式每一项都绑定口播里说到它的词，按口播先后递增（第 3A 节）。
 - 连线等两端卡片都停稳再画，从先出现的卡画向后出现的卡，逐段、按顺序长出；线上标签/VS/结论条在线画完后出现。
+- 遵守第 3B 节：大卡只放图/图表，文字进小卡；户型用随包自绘素材；字阶走 `CARD_TYPE` / `CHART_TYPE`；卡面用浅色字；片尾用小滕挥手/指向、气泡和弹卡。
 
 **禁止做（DON'T）**
 
 - 手写 CSS 颜色，或用 `--props` 覆盖 `SUB` / `HILITE` / `FOG` / 金色高亮。
 - 把卡片改回暖白、土黄、棕色或粉色底；用金色做标题或当前词。
-- 自造未登记版式，或拿 `titleFloat` 当万能卡。
-- 给短内容套空大卡；卡片落位后回弹；加颗粒或扫光。
+- 自造未登记版式，或拿 `titleFloat` 当万能卡；选用已退役的纯文字重卡（`quoteStack`、`pitfallBoard`、`ticketStub`、`indexTabs`、`slashCompare`、`archLight`、`contractNote`、`buildingSection`、`parkingLines`、`familyPlan`）。
+- 给短内容套空大卡，或在大卡里只堆文字；手画或替换随包户型图。
+- 在卡面或正文使用黑色、近黑文字，或在小卡里手写字号。
+- 卡片落位后回弹；加颗粒或扫光。
 - 改共用风格源码或重写 `style-lock.json` / `color-allowlist.json` 来通过检查。
 - 使用随手手机拍、低清、水印、无授权素材，或把取材任务丢回用户。
 - 编造税率、利率、评分等演示数字充当事实。
@@ -292,15 +307,16 @@ anchors: {r0: '小区', r1: '楼栋', r2: '户型', r3: '成交'}
 
 ## 11. 完成定义（Definition of done）
 
-同时满足以下条件，才能声称「按 5.1 模板完成了本期视频」：
+同时满足以下条件，才能声称「按 5.1.1 模板完成了本期视频」：
 
 - 画幅 1920×1080；正片 30fps（独立片头 50fps）；字幕与口播时钟正确。
-- 每镜 layout 均在 `POOL_LAYOUTS`（48 款）中，选版符合决策表和多样性规则；短内容优先小卡。
-- 画面为墨蓝·电光（或用户明确指定的 B/C），无暖白卡、无金色标题/当前词，无颗粒扫光和回弹。
+- 每镜 layout 均在 `POOL_LAYOUTS`（38 款）中，不得使用退役版式；选版符合决策表和多样性规则；短内容优先小卡。
+- 画面为墨蓝·电光（或用户明确指定的 B/C），无暖白卡、无金色标题/当前词，无颗粒扫光和回弹，无近黑文字。
 - 字幕为 v2 令牌：40px、底部墨蓝胶囊、冰蓝当前词、自然断句。
 - 素材符合第 8 节，来源已登记；对比/列举有图框与标题（若该镜是列举或对比）。
 - 流程类镜头逐项按口播入场，连线在两端停稳后从源到目标依次长出（第 3A 节）。
-- **`npm run verify` 通过**（指纹、颜色守卫、约束、冻结、顺序与连线、镜头结构）。正式交付建议加上 `npm run verify -- --dom` 或等效 DOM 检查。
+- 符合第 3B 节：无纯文字大卡；户型为随包 `plan_3br2ba`；图表数值直标并按口播依次长出；片尾为小滕互动版且无关注引导。
+- **`npm run verify` 通过**（指纹、颜色守卫、可读性/字阶、约束、冻结、顺序与连线、镜头结构）。正式交付在已准备 stock 或等效背景时加上 `npm run verify -- --dom`。
 - 已提供片头预览和正片审看，**并取得用户批准后**才导出正式成片。
 - 成片可完整解码，音轨与字幕起点正确。清楚区分机器检查与人工 / 用户验收。
 
@@ -323,7 +339,10 @@ mkdir -p episodes/本期名
 npm run episode -- 本期名
 
 # 4. 按本标准第 6 节填写 src/demo/shots.ts 与 episode-plan.json
-#    选已登记 layout，内容短优先 dataCluster / comparePair / stepRail / riskGroup / noteGroup
+#    只选 POOL_LAYOUTS 里的 38 款，不要用已退役的纯文字重卡
+#    内容短优先 dataCluster / comparePair / stepRail / riskGroup / noteGroup
+#    大卡必须有图或图表；户型用随包 public/media/floorplan/plan_3br2ba
+#    不要手写颜色或小卡字号；流程项按口播绑锚点（第 3A、3B 节）
 #    背景视频和生成图放入 public/media/ 并登记
 
 # 5. 强制检查（必须通过）
@@ -350,12 +369,13 @@ npm run render -- --out=out/成片.mp4
 
 | 命令 | 作用 |
 |---|---|
-| `npm run verify` | 一次跑完 TypeScript、风格指纹、颜色守卫、约束、定格冻结、顺序与连线、镜头/样例结构。失败则渲染无效。 |
-| `npm run verify -- --dom` | 另做 5 款小卡组合的 DOM 检查（越界、字号、字幕居中）。 |
-| `npm run check:style` | `scripts/style-lock.json` 指纹，修订 `5.1-2026-11-18 顺序与连线`。改共用风格文件会失败。 |
+| `npm run verify` | 一次跑完 TypeScript、风格指纹、颜色守卫、可读性/字阶、约束、定格冻结、顺序与连线、镜头/样例结构。失败则渲染无效。 |
+| `npm run verify -- --dom` | 另做 DOM 实测：选卡池全部 38 款（5 款小卡 + 33 款图卡/图表/其他），检查越界、字阶、近黑文字、纯文字大玻璃面板、字幕居中。仓库不含 stock 视频，需先 `npm run stock` 或补齐背景后再跑。 |
+| `npm run check:readability` | 5.1.1：源码里不得有近黑文字色，色调全深底浅字，小卡不得手写字号（必须取自 `CARD_TYPE`），图表字阶与 `data-viz` 面板齐全。 |
+| `npm run check:style` | `scripts/style-lock.json` 指纹，修订 `5.1.1-2026-11-18 图卡与可读性`。改共用风格文件会失败。 |
 | `npm run check:colors` | 锁定 `SUB` / `HILITE` / 默认色板；令牌外颜色按 `color-allowlist.json` 冻结；小卡和字幕禁止禁用色。 |
-| `npm run check:constraints` | 48 款版式登记、对比度、字幕定版值、小卡网格与匹配规则。 |
-| `npm run check:freeze` | 材质与入场单调、26+9+17+5 落位后不再移动。 |
+| `npm run check:constraints` | 38 款选卡池登记、大卡必须放图、户型图素材、对比度、字幕定版值、小卡网格与匹配规则。 |
+| `npm run check:freeze` | 材质与入场单调、24 默认 + 9 新 + 5 小卡落位后不再移动（退役版式不在选卡池）。 |
 | `npm run check:sequence` | 顺序与连线（第 3A 节）：逐项入场递增、连线在两端停稳后从源到目标依次长出、流程类镜头锚点齐全且按口播顺序。 |
 | `npm run check` / `check-episode` | 当期镜头表、字幕、素材时长与多样性。 |
 | `npm run render` | **先跑 verify**；非法 palette / 令牌 props 或 `--no-verify` 会被拒绝；安装样例不能导出为「成片」。 |

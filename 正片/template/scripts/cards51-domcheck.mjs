@@ -16,4 +16,19 @@ for(const i of [0,1,2,3,4]){const inputProps={check:true,only:i,palette:'inkBlue
   if(!s){console.log(`  字幕@${mf}: 未渲染`);bad++;continue;}const cx=s.x+s.w/2,e=[];
   if(s.x<96||s.x+s.w>1824)e.push('横向越界');if(Math.abs(cx-960)>2)e.push('未居中 '+cx.toFixed(1));if(s.y<900||s.y+s.h>1080)e.push('纵向越界');if(s.fs<38||s.fs>46)e.push('字号 '+s.fs);if(s.over)e.push('行内溢出');
   console.log(`  字幕@${mf} ${e.length?'✗ '+e.join('; '):'✓'} 中心 ${Math.round(cx)} y ${Math.round(s.y)}–${Math.round(s.y+s.h)} 宽 ${Math.round(s.w)} 字号 ${s.fs}`);bad+=e.length;}}
+// 5.1.1：选卡池其余版式（画廊 24 + 新卡 9）也逐镜做 DOM 检查：近黑文字 / 字阶 / 纯文字大卡 / 字号下限 / 出区
+import {GALLERY} from '../src/gallery/shots-mg-gallery.ts';
+import {NEW_GALLERY} from '../src/gallery/shots-mg-new.ts';
+if (!process.argv.includes('--quick')) for (const [id, shots] of [['MgGallery', GALLERY], ['MgGalleryNew', NEW_GALLERY]]) {
+  const inputProps = {check: true, palette: 'inkBlue'};
+  const composition = await selectComposition({serveUrl, id, inputProps});
+  for (let i = 0; i < shots.length; i++) {
+    if (process.env.ONLY && !process.env.ONLY.split(',').includes(shots[i].layout)) continue;
+    let got = null;
+    await renderStill({serveUrl, composition, frame: i * 150 + 149, inputProps, output: `out/dom51/${shots[i].layout}.png`, chromiumOptions: {gl: 'angle'}, timeoutInMilliseconds: 120000,
+      onBrowserLog: (l) => { const m = l.text.match(/CHECK\|([^|]+)\|(\[.*\])/); if (m) got = {id: m[1], e: JSON.parse(m[2])}; }});
+    if (!got) { console.log(`${shots[i].layout}: 未拿到 DOM 检查结果`); bad++; continue; }
+    console.log(`${shots[i].layout} DOM ${got.e.length ? '✗ ' + got.e.join('; ') : '✓'}`); bad += got.e.length;
+  }
+}
 process.exit(bad?1:0);

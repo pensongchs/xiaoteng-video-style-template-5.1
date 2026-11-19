@@ -2,7 +2,8 @@ import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
 import {Backdrop, ExampleMark, Fonts, Headline, Kicker} from '../style/components';
 import {Transition, TRANSITIONS} from '../style/transitions';
-import {RankBars, Waffle, Balance, YearRing, FormulaCalc} from '../style/DataCharts2';
+import {Waffle, Balance, YearRing, FormulaCalc} from '../style/DataCharts2';
+import {RankBars} from '../style/DataCharts';
 import {cols} from '../style/grid';
 const S = 140; export const DCS2_FRAMES = S * 5;
 const shots: {bg: string; kicker: string; title: string; el: React.ReactNode}[] = [

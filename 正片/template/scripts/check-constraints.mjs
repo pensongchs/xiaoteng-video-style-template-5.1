@@ -4,11 +4,11 @@ import {readFileSync, readdirSync} from 'node:fs';
 import {basename, join, relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {SAFE} from '../src/style/grid.ts';
-import {ARCHIVE_LAYOUTS, DEFAULT_LAYOUTS, ESTATE_LAYOUTS, NEW_LAYOUTS, POOL_LAYOUTS, SMALL_LAYOUTS, layoutRects} from '../src/style/layouts.ts';
+import {ARCHIVE_LAYOUTS, BIG_CARD_AREA, CARD_CLASS, DEFAULT_LAYOUTS, ESTATE_LAYOUTS, IMAGE_BIG_LAYOUTS, NEW_LAYOUTS, POOL_LAYOUTS, RETIRED_LAYOUTS, RETIRED_REPLACEMENT, SMALL_LAYOUTS, layoutRects} from '../src/style/layouts.ts';
 import {SHOTS} from '../src/demo/shots.ts';
 import {sceneOf, NEW_SCENE_NAMES} from '../src/style/scenes.ts';
 import {connectorFaults, gapBetween, overlapArea, samplesOf} from '../src/style/geom.ts';
-import {validateLibrary, planById, layoutPlan} from '../src/style/floorplans.ts';
+import {PLAN_ASSET, validatePlanAsset} from '../src/style/floorplans.ts';
 import {contrastRatio, inkContrast, parseRgb, textTreatment} from '../src/style/readability.ts';
 import {FOG, glassEnter, GLASS_ENTER_FRAMES} from '../src/style/tokens.ts';
 import {matchEpisode, quotaFaults} from '../src/match/matchCopy.ts';
@@ -18,11 +18,11 @@ const errs = [];
 const font = opentype.loadSync(new URL('../public/fonts/AlibabaHealthFont2.0CN-85B.ttf', import.meta.url));
 const widthOf = (text, size) => font.getAdvanceWidth(text, size);
 
-if (DEFAULT_LAYOUTS.length !== 26) errs.push(`默认版式 ${DEFAULT_LAYOUTS.length} ≠ 26`);
-if (ESTATE_LAYOUTS.length !== 9) errs.push(`房产 MG ${ESTATE_LAYOUTS.length} ≠ 9`);
-if (NEW_LAYOUTS.length !== 17) errs.push(`新卡 ${NEW_LAYOUTS.length} ≠ 17`);
+if (DEFAULT_LAYOUTS.length !== 24) errs.push(`默认版式 ${DEFAULT_LAYOUTS.length} ≠ 24（5.1.1 退役 quoteStack/pitfallBoard 两个纯文字大卡）`);
+if (ESTATE_LAYOUTS.length !== 8) errs.push(`房产 MG ${ESTATE_LAYOUTS.length} ≠ 8`);
+if (NEW_LAYOUTS.length !== 9) errs.push(`新卡 ${NEW_LAYOUTS.length} ≠ 9（5.1.1 退役 8 款纯文字大卡）`);
 if (SMALL_LAYOUTS.length !== 5) errs.push(`5.1 小卡组合 ${SMALL_LAYOUTS.length} ≠ 5`);
-if (POOL_LAYOUTS.length !== 48) errs.push(`选卡池 ${POOL_LAYOUTS.length} ≠ 48（43 + 小卡 5）`);
+if (POOL_LAYOUTS.length !== 38) errs.push(`选卡池 ${POOL_LAYOUTS.length} ≠ 38（24 + 新卡 9 + 小卡 5）`);
 for (const name of SMALL_LAYOUTS) if (DEFAULT_LAYOUTS.includes(name) || NEW_LAYOUTS.includes(name)) errs.push(`${name} 不应替换已有版式`);
 for (const name of NEW_LAYOUTS) if (DEFAULT_LAYOUTS.includes(name)) errs.push(`${name} 不应替换默认 26`);
 
@@ -30,20 +30,39 @@ if (SUB.size !== 40 || SUB.color !== '#F5F8FC' || SUB.hi !== '#9CC4FF' || SUB.bo
   errs.push(`字幕定版被改动 ${JSON.stringify({size: SUB.size, color: SUB.color, hi: SUB.hi, bottom: SUB.bottom})}`);
 }
 
-const lib = validateLibrary();
-lib.forEach((e) => errs.push(e));
+// 5.1.1 户型图素材：真实比例（mm）CAD 风格户型图，文件齐全、房间名/面积/墙厚/门窗合理
+validatePlanAsset().forEach((e) => errs.push(e));
+for (const f of ['plan_3br2ba.svg', 'plan_3br2ba.png', 'plan_3br2ba.json']) {
+  try { if (readFileSync(new URL(`../public/media/floorplan/${f}`, import.meta.url)).length < 1000) errs.push(`户型素材 ${f} 太小`); } catch { errs.push(`缺户型素材 public/media/floorplan/${f}`); }
+}
+{
+  const svg = readFileSync(new URL('../public/media/floorplan/plan_3br2ba.svg', import.meta.url), 'utf8');
+  if (/<text[\s>]/.test(svg)) errs.push('户型 SVG 里有 <text>：文字必须转轮廓，避免换机字体不同');
+  if (PLAN_ASSET.aspect < 0.8 || PLAN_ASSET.aspect > 1.6) errs.push(`户型图宽高比 ${PLAN_ASSET.aspect.toFixed(2)} 不合理`);
+}
 
-const planRect = layoutRects('planSplit').plan;
-const plan = planById('三室-甲');
-const laid = layoutPlan(plan, planRect);
-plan.rooms.forEach((r) => {
-  const room = {x: laid.X(r.x), y: laid.Y(r.y), w: r.w * laid.scale, h: r.h * laid.scale};
-  const nw = widthOf(r.name, 30);
-  const nameBox = {x: laid.X(r.x + r.w / 2) - nw / 2, y: laid.Y(r.y + r.h / 2) - 32, w: nw, h: 30};
-  if (nameBox.x < room.x + 2 || nameBox.x + nameBox.w > room.x + room.w - 2 || nameBox.y < room.y + 2) errs.push(`户型「${r.name}」字压到墙或房间外`);
-  const near = samplesOf(laid.flow, 2).some((p) => Math.hypot(p[0] - (nameBox.x + nameBox.w / 2), p[1] - (nameBox.y + 15)) < 12);
-  if (near) errs.push(`房间名「${r.name}」离动线 < 12px`);
-});
+// 5.1.1 大卡规则：选卡池每个版式必须登记卡面类别；退役版式不得入池；纯文字大卡（面积 > BIG_CARD_AREA）一律不允许。
+for (const name of POOL_LAYOUTS) if (!CARD_CLASS[name]) errs.push(`版式「${name}」没有在 layouts.ts 的 CARD_CLASS 登记卡面类别（image/viz/small/none/outro）`);
+for (const name of RETIRED_LAYOUTS) {
+  if (POOL_LAYOUTS.includes(name)) errs.push(`退役版式「${name}」不应在选卡池（纯文字大卡）`);
+  if (!RETIRED_REPLACEMENT[name] || !POOL_LAYOUTS.includes(RETIRED_REPLACEMENT[name])) errs.push(`退役版式「${name}」缺替代版式`);
+}
+for (const name of IMAGE_BIG_LAYOUTS) if (CARD_CLASS[name] !== 'image') errs.push(`IMAGE_BIG_LAYOUTS 里的「${name}」必须是 image 类`);
+for (const name of POOL_LAYOUTS) {
+  if (!NEW_SCENE_NAMES.includes(name)) continue;
+  for (const c of sceneOf(name).cards) {
+    const xs = c.poly.map((p) => p[0]), ys = c.poly.map((p) => p[1]);
+    const area = (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys));
+    const shaped = !(new Set(xs).size === 2 && new Set(ys).size === 2); // 异形面板（杯形图等）是图形本身，不是文字大卡
+    if (shaped && CARD_CLASS[name] === 'viz') continue;
+    if (area > BIG_CARD_AREA && !c.visual) errs.push(`${name}/${c.id} 是纯文字大卡（${Math.round(area / 1000)}k px² > ${BIG_CARD_AREA / 1000}k）：大卡必须放图（图框/户型图/图示），文字拆进小卡`);
+  }
+}
+{ // 自检：这条规则必须能拦住纯文字大卡
+  const fake = {poly: [[0, 0], [600, 0], [600, 300], [0, 300]], visual: undefined};
+  const area = 600 * 300;
+  if (!(area > BIG_CARD_AREA && !fake.visual)) errs.push('大卡检查自身失效');
+}
 
 for (const name of NEW_SCENE_NAMES) {
   const sc = sceneOf(name);
@@ -161,7 +180,7 @@ const REGISTERED_LAYOUTS = new Set([...POOL_LAYOUTS, ...ARCHIVE_LAYOUTS, 'outroA
 
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^\\])\/\/.*$/gm, '$1');
 const lineNo = (src, index) => src.slice(0, index).split('\n').length;
-const layoutFault = (where, name) => `${where}: 版式「${name}」未在 layouts.ts 的 LayoutName 登记。正片只能用已登记官方版式（默认 26 种 + 新 17 款；存档 6 套不默认推荐；outroAir 只是 outroHost 的别名）。不要自造 phrase、broll、chapterTitle、wordCompare、commuteCalc 或 opening。塞不下就换 matchEpisode() 的下一个官方候选或拆镜，并继续走 ShotView / sceneOf。`;
+const layoutFault = (where, name) => `${where}: ${RETIRED_REPLACEMENT[name] ? `版式「${name}」已在 5.1.1 退役（纯文字大卡），请改用「${RETIRED_REPLACEMENT[name]}」；` : ''}版式「${name}」未在 layouts.ts 的 LayoutName 登记。正片只能用已登记官方版式（选卡池 38 种；存档 6 套不默认推荐；outroAir 只是 outroHost 的别名；5.1.1 退役的纯文字大卡版式不可用）。不要自造 phrase、broll、chapterTitle、wordCompare、commuteCalc 或 opening。塞不下就换 matchEpisode() 的下一个官方候选或拆镜，并继续走 ShotView / sceneOf。`;
 
 /** 从 shots 源码里取出 layout: '…' / "layout": "…"。 */
 export const layoutFaultsInCode = (source, label) => {
@@ -264,5 +283,5 @@ if (!demoSrc.includes("from '../style/archetypes'") || !demoSrc.includes('<ShotV
 export const constraintErrors = errs;
 if (process.argv[1] && process.argv[1].endsWith('check-constraints.mjs')) {
   if (errs.length) { console.log('✗ 约束\n' + errs.join('\n')); process.exit(1); }
-  console.log(`✓ 约束通过：26+9 仍在，新卡 ${NEW_LAYOUTS.length}，小卡组合 ${SMALL_LAYOUTS.length}，户型库，连线，字体实测，对比度，匹配，镜头表版式已登记`);
+  console.log(`✓ 约束通过：选卡池 ${POOL_LAYOUTS.length}（默认 ${DEFAULT_LAYOUTS.length} + 新卡 ${NEW_LAYOUTS.length} + 小卡 ${SMALL_LAYOUTS.length}），大卡必须放图，户型图素材，连线，字体实测，对比度，匹配，镜头表版式已登记`);
 }

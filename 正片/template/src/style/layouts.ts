@@ -20,14 +20,36 @@ export type LayoutName =
   | 'dataCluster' | 'comparePair' | 'stepRail' | 'riskGroup' | 'noteGroup';
 
 /** 5.0 新定版（玻璃v6 + 房产MG）：推荐/预览的唯一机器可读清单。 */
-export const CORE_LAYOUTS = ['titleFloat','bareNumber','splitVs','timeline','mediaRows','quoteStack','ringFeature','waitVs','triadSoft','outroHost'] as const;
+export const CORE_LAYOUTS = ['titleFloat','bareNumber','splitVs','timeline','mediaRows','ringFeature','waitVs','triadSoft','outroHost'] as const;
 export const DATA_LAYOUTS = ['lineReveal','barGlow','rankBars','waffle','balance','yearRing','formulaCalc'] as const;
-export const ESTATE_LAYOUTS = ['floorLadder','paymentSplit','amenityOrbit','pitfallBoard','priceStep','decisionFork','districtTags','loanDial','layerReveal'] as const;
+export const ESTATE_LAYOUTS = ['floorLadder','paymentSplit','amenityOrbit','priceStep','decisionFork','districtTags','loanDial','layerReveal'] as const;
 export const ARCHIVE_LAYOUTS = ['keywordCascade','checklistFill','vsScore','tipStack','numberedReveal','kpiGrid'] as const;
 export const DEFAULT_LAYOUTS: readonly LayoutName[] = [...CORE_LAYOUTS, ...DATA_LAYOUTS, ...ESTATE_LAYOUTS];
-export const NEW_LAYOUTS = ['ticketStub','indexTabs','amenityPins','slashCompare','archLight','paymentCup','loanCurve','contractNote','planSplit','buildingSection','pitfallLens','parkingLines','hexSteps','inspectTags','familyPlan','policyNotes','qaBubbles'] as const;
+export const NEW_LAYOUTS = ['amenityPins','paymentCup','loanCurve','planSplit','pitfallLens','hexSteps','inspectTags','policyNotes','qaBubbles'] as const;
+/** 5.1.1 退役：大卡里只塞文字、留白多、比例怪的版式。代码保留以便老仓库回看，但不进选卡池，镜头表里出现即 verify 失败。
+ *  替代：想要「一张大卡」→ 用图框版式（mediaRows/ringFeature/splitVs/waitVs/bareNumber/planSplit）；想要「一组文字」→ 5.1 小卡组合（dataCluster/comparePair/stepRail/riskGroup/noteGroup）。 */
+export const RETIRED_LAYOUTS = ['quoteStack','pitfallBoard','ticketStub','indexTabs','slashCompare','archLight','contractNote','buildingSection','parkingLines','familyPlan'] as const;
+export const RETIRED_REPLACEMENT: Record<string, string> = {quoteStack: 'noteGroup', pitfallBoard: 'riskGroup', ticketStub: 'dataCluster', indexTabs: 'stepRail', slashCompare: 'comparePair',
+  archLight: 'dataCluster', contractNote: 'riskGroup', buildingSection: 'floorLadder', parkingLines: 'noteGroup', familyPlan: 'dataCluster'};
+/** 渲染用的旧新卡全集（含退役），只给 archetypes 的视图表用，不是选卡池。 */
+export const NEW_LAYOUTS_ALL = ['ticketStub','indexTabs','amenityPins','slashCompare','archLight','paymentCup','loanCurve','contractNote','planSplit','buildingSection','pitfallLens','parkingLines','hexSteps','inspectTags','familyPlan','policyNotes','qaBubbles'] as const;
 export const SMALL_LAYOUTS = ['dataCluster','comparePair','stepRail','riskGroup','noteGroup'] as const;
 export const POOL_LAYOUTS: readonly LayoutName[] = [...DEFAULT_LAYOUTS, ...NEW_LAYOUTS, ...SMALL_LAYOUTS];
+/** 5.1.1 卡面分类（每个选卡池版式必须登记）：
+ *  image = 大卡里放图（图框/户型图/视频），文字只在小卡、标题条里；viz = 图表/仪表（大面板里是图形，不是整块文字）；
+ *  small = 只有小卡（单卡面积 ≤ 12 万 px²）；none = 无卡面（裸数字/标签）；outro = 片尾。
+ *  大卡 = 毛玻璃面板面积 > BIG_CARD_AREA。大卡必须是 image 或 viz 且内含图/图形，纯文字大卡 verify 直接失败。 */
+export type CardClass = 'image' | 'viz' | 'small' | 'none' | 'outro';
+export const BIG_CARD_AREA = 120000;
+export const CARD_CLASS: Record<string, CardClass> = {
+  titleFloat: 'image', bareNumber: 'image', splitVs: 'image', timeline: 'small', mediaRows: 'image', ringFeature: 'image', waitVs: 'image', triadSoft: 'small', outroHost: 'outro',
+  lineReveal: 'viz', barGlow: 'viz', rankBars: 'viz', waffle: 'viz', balance: 'viz', yearRing: 'viz', formulaCalc: 'viz',
+  floorLadder: 'small', paymentSplit: 'small', amenityOrbit: 'none', priceStep: 'small', decisionFork: 'small', districtTags: 'small', loanDial: 'viz', layerReveal: 'small',
+  amenityPins: 'small', paymentCup: 'viz', loanCurve: 'small', planSplit: 'image', pitfallLens: 'small', hexSteps: 'small', inspectTags: 'small', policyNotes: 'small', qaBubbles: 'small',
+  dataCluster: 'small', comparePair: 'small', stepRail: 'small', riskGroup: 'small', noteGroup: 'small',
+};
+/** 图框大卡版式：一期里最多用 3 次，其余镜头走小卡。 */
+export const IMAGE_BIG_LAYOUTS: readonly string[] = Object.entries(CARD_CLASS).filter(([k, v]) => v === 'image' && k !== 'titleFloat' && k !== 'bareNumber').map(([k]) => k);
 export const canonicalLayout = (name: string) => name === 'outroAir' ? 'outroHost' : name;
 export const isDefaultLayout = (name: string) => DEFAULT_LAYOUTS.includes(canonicalLayout(name) as LayoutName);
 
@@ -55,14 +77,15 @@ export const layoutRects = (name: LayoutName, n = 3, opt: {character?: boolean; 
       return {steps: rect(0, 12, steps), [opt.windows ? 'windows' : 'note']: rect(0, 12, lower)};
     }
     case 'mediaRows':
-      return {media: rect(0, 5, FULL), rows: rect(6, 6, FULL)};
+      // 5.1.1：左图大卡（6 栏）+ 右侧 5 栏小行（每行 ≤172 高，面积 < 12 万）
+      return {media: rect(0, 6, FULL), rows: rect(7, 5, {y: ROWS.contentTop + (CONTENT_H - Math.min(CONTENT_H, n * 172 + (n - 1) * 24)) / 2, h: Math.min(CONTENT_H, n * 172 + (n - 1) * 24)})};
     case 'quoteStack': {
       const [rows, warn] = splitRows(ROWS.contentTop, CONTENT_H, [74, 26]);
       return {quote: rect(0, 5, FULL), rows: rect(6, 6, rows), warn: rect(6, 6, warn)};
     }
     case 'ringFeature': {
-      const [ring, a] = splitRows(ROWS.contentTop, CONTENT_H, [54, 46]);
-      return {media: rect(0, 6, FULL), ring: rect(7, 5, ring), a: rect(7, 5, a)};
+      // 5.1.1：左图大卡 + 右侧环（viz）与一张 4 栏小卡
+      return {media: rect(0, 6, FULL), ring: rect(7, 5, {y: ROWS.contentTop + 20, h: 300}), a: rect(7, 4, {y: ROWS.contentTop + 20 + 300 + 40, h: 215})};
     }
     case 'waitVs': {
       const [img, num] = splitRows(ROWS.contentTop, CONTENT_H, [50, 50]);
@@ -70,15 +93,16 @@ export const layoutRects = (name: LayoutName, n = 3, opt: {character?: boolean; 
         connArrow: rect(5, 2, {y: num.y + 70, h: 40})};
     }
     case 'triadSoft': {
-      const [top, note] = splitRows(ROWS.contentTop, CONTENT_H, [66, 34]);
-      return {c0: rect(0, 3, top), c1: rect(4, 4, top), c2: rect(9, 3, top), note: rect(0, 12, note)};
+      // 5.1.1：三张 4 栏等宽小卡，高 210（面积 < 12 万），下面一条结论
+      const top = {y: ROWS.contentTop + 80, h: 210}; const note = {y: ROWS.contentTop + 80 + 210 + 70, h: 110};
+      return {c0: rect(0, 4, top), c1: rect(4, 4, top), c2: rect(8, 4, top), note: rect(0, 12, note)};
     }
     case 'outroAir':
     case 'outroHost': {
-      // 片尾：小滕默认出镜，占左侧约 1/3 宽、底边贴画面底；文案在右 5–11 栏分层排版。character:false 时文案居中
+      // 片尾（5.1.1）：小滕在右侧安全区内（x≤1632，不压抖音按钮），头顶是对话气泡；文案在左 7 栏：标题字 + 小卡逐条弹出。character:false 时文案居中、无气泡
       const band = {y: ROWS.contentTop - 40, h: CONTENT_H + 40};
       return opt.character
-        ? {character: {x: 40, y: 250, w: 620, h: 830}, text: rect(5, 7, band)}
+        ? {character: {x: 1000, y: 250, w: 632, h: 830}, bubble: {x: 980, y: 92, w: 652, h: 132}, text: rect(0, 7, band)}
         : {text: rect(2, 8, band)};
     }
     // ===== 5.0 数据版式（尺寸「协调合理」：内容约占矩形 55–75%，不用空卡片）=====
@@ -99,18 +123,18 @@ export const layoutRects = (name: LayoutName, n = 3, opt: {character?: boolean; 
     // ===== 5.0 房产科普 MG（已定 9 种）=====
     case 'floorLadder': return {ladder: rect(0, 12, FULL)};
     case 'paymentSplit': {
-      const [total, parts] = splitRows(ROWS.contentTop, CONTENT_H, [30, 70]);
-      return {total: rect(0, 12, total), parts: rect(0, 12, parts)};
+      // 5.1.1：总价小卡 + 占比条（viz），三张分项卡压到 224 高（面积 < 12 万），不留空
+      return {total: rect(0, 12, {y: ROWS.contentTop + 30, h: 150}), parts: rect(0, 12, {y: ROWS.contentTop + 30 + 150 + 130, h: 224})};
     }
     case 'amenityOrbit': return {orbit: rect(0, 12, FULL)};
     case 'pitfallBoard': return {head: rect(0, 4, FULL), list: rect(5, 7, FULL)};
-    case 'priceStep': return {steps: rect(0, 12, FULL)};
+    case 'priceStep': return {steps: rect(0, 12, {y: ROWS.contentTop + 80, h: 400})};
     case 'decisionFork': {
-      const q = {y: ROWS.contentTop, h: 140}; const conn = {y: q.y + q.h + 24, h: 130}; const out = {y: conn.y + conn.h + 24, h: ROWS.contentBottom - (conn.y + conn.h + 24)};
+      const q = {y: ROWS.contentTop + 10, h: 130}; const conn = {y: q.y + q.h + 24, h: 90}; const out = {y: conn.y + conn.h + 24, h: ROWS.contentBottom - (conn.y + conn.h + 24)};
       return {q: rect(3, 6, q), connFork: rect(0, 12, conn), L: rect(0, 5, out), R: rect(7, 5, out)};
     }
     case 'districtTags': return {cloud: rect(0, 9, FULL), legend: rect(10, 2, FULL)};
-    case 'loanDial': return {dial: rect(0, 6, FULL), stats: rect(7, 5, FULL)};
+    case 'loanDial': return {dial: rect(0, 7, FULL), stats: rect(8, 4, FULL)};
     case 'layerReveal': return {layers: rect(0, 7, FULL), score: rect(8, 4, FULL)};
     case 'ticketStub': return {ticket: rect(1, 10, {y: ROWS.contentTop + 36, h: CONTENT_H - 72})};
     case 'indexTabs': {
@@ -126,7 +150,7 @@ export const layoutRects = (name: LayoutName, n = 3, opt: {character?: boolean; 
       return {path: rect(0, 12, path), cards: rect(0, 12, cards)};
     }
     case 'contractNote': return {doc: rect(0, 7, FULL), notes: rect(8, 4, FULL)};
-    case 'planSplit': return {plan: rect(0, 8, FULL), stats: rect(9, 3, FULL)};
+    case 'planSplit': return {plan: rect(0, 7, FULL), stats: rect(8, 4, FULL)};
     case 'buildingSection': return {section: rect(0, 7, FULL), tags: rect(8, 4, FULL)};
     case 'pitfallLens': return {stage: rect(0, 12, FULL)};
     case 'parkingLines': return {lot: rect(0, 8, FULL), notes: rect(9, 3, FULL)};
@@ -135,11 +159,11 @@ export const layoutRects = (name: LayoutName, n = 3, opt: {character?: boolean; 
     case 'familyPlan': return {people: rect(0, 5, FULL), unit: rect(6, 6, FULL)};
     case 'policyNotes': return {wall: rect(1, 10, FULL)};
     // 5.1 小卡组合：每个矩形是一组小卡的落点；组间 ≥48，连接件 ≥24。
-    case 'dataCluster': return {hero: rect(0, 4, {y: 268, h: 300}), connLink: rect(4, 1, {y: 268, h: 420}), items: rect(5, 4, {y: 268, h: 420}), pill: rect(0, 4, {y: 616, h: 72})};
+    case 'dataCluster': return {hero: rect(0, 3, {y: 268, h: 320}), connLink: rect(3, 1, {y: 268, h: 420}), items: rect(4, 6, {y: 268, h: 420}), pill: rect(0, 3, {y: 640, h: 72})};
     case 'comparePair': return {L: rect(1, 4, {y: 256, h: 368}), connVs: rect(5, 2, {y: 404, h: 72}), R: rect(7, 4, {y: 256, h: 368}), verdict: rect(3, 6, {y: 672, h: 72})};
     case 'stepRail': return {rail: rect(0, 12, {y: 280, h: 340})};
     case 'riskGroup': return {head: rect(0, 3, {y: 268, h: 320}), list: rect(4, 7, {y: 268, h: 360}), pill: rect(4, 5, {y: 676, h: 72})};
-    case 'noteGroup': return {quote: rect(0, 5, {y: 268, h: 248}), connLink: rect(5, 1, {y: 268, h: 420}), notes: rect(6, 5, {y: 256, h: 432})};
+    case 'noteGroup': return {quote: rect(0, 4, {y: 268, h: 240}), connLink: rect(4, 1, {y: 268, h: 420}), notes: rect(5, 6, {y: 256, h: 432})};
     case 'qaBubbles': return {q: rect(0, 5, {y: ROWS.contentTop + 8, h: 280}), a: rect(6, 6, {y: ROWS.contentTop + 336, h: 280})};
     default:
       return {};

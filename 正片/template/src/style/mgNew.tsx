@@ -1,12 +1,11 @@
 // 磨砂玻璃扩展17款。停稳坐标来自 scenes.ts；入场用 18 帧 quint，到位后不再移动。
 // 整组放在同一个透视平面上，连线和卡边一起侧转，避免线头和卡片错开。
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
+import {Img, staticFile, useCurrentFrame} from 'remotion';
 import {glassMat, toneMat, GlassUnderlay, GlassEdge} from './components';
-import {DEPTH, FONT, FOG, FROST, fogFill, glassEnter, toneVars, type FogTone} from './tokens';
+import {COLOR, DEPTH, FONT, FOG, FROST, TYPE, fogFill, glassEnter, toneVars, type FogTone} from './tokens';
 import {layoutRects} from './layouts.ts';
 import {sceneOf, type CardGeom, type TextRun, type Scene} from './scenes.ts';
-import {layoutPlan, planById, type Plan} from './floorplans.ts';
 import type {Pt} from './geom.ts';
 import type {Rect} from './grid.ts';
 import {PropertyArt} from './illustrations';
@@ -78,10 +77,10 @@ const CardFace: React.FC<{card: CardGeom; p: number; i: number; yaw: number; sta
         boxSizing: 'border-box', whiteSpace: 'nowrap', lineHeight: 1.3,
         fontFamily: t.role === 'num' ? FONT.num : FONT.body, fontWeight: 700, fontSize: t.size,
         letterSpacing: t.role === 'num' ? -1 : step ? 0.5 : 0,
-        color: step ? '#0B1424' : ink,
+        color: step ? COLOR.pearlInk : ink,
         transform: step ? 'translateZ(34px)' : undefined,
         borderRadius: step ? 999 : room ? 18 : 0,
-        background: step ? 'linear-gradient(180deg, color-mix(in srgb, var(--acc-raw) 55%, white), var(--acc-raw))' : room ? 'rgba(236,242,250,0.46)' : 'transparent',
+        background: step ? 'linear-gradient(180deg, color-mix(in srgb, var(--acc-raw) 70%, #12348C), color-mix(in srgb, var(--acc-raw) 45%, #12348C))' : room ? 'rgba(236,242,250,0.46)' : 'transparent',
         border: room ? '1px solid rgba(10,18,32,0.14)' : 'none',
         boxShadow: step ? '0 8px 14px rgba(6,22,36,0.28), inset 0 1.5px 0 rgba(236,242,250,0.9)' : room ? 'inset 0 1px 0 rgba(236,242,250,0.7)' : 'none',
       }}>{t.text}</div>;
@@ -127,71 +126,12 @@ const Stage: React.FC<{layout: string; children: React.ReactNode}> = ({layout, c
   );
 };
 
-const FloorFig: React.FC<{plan: Plan; rect: Rect; p: number}> = ({plan, rect, p}) => {
-  const {X, Y, scale} = layoutPlan(plan, rect);
-  const flow = plan.flow.map((pt) => `${X(pt[0])},${Y(pt[1])}`).join(' ');
-  const ext = plan.walls.filter((w) => w.kind === 'exterior');
-  const minX = Math.min(...ext.map((w) => w.x)), maxX = Math.max(...ext.map((w) => w.x + w.w));
-  const top = Math.min(...ext.map((w) => w.y));
-  const dimY = Y(top) - 22;
-  return <svg style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'visible'}}>
-    <defs>
-      <pattern id="wallHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="6" strokeWidth="1" style={{stroke: 'var(--acc)'}} />
-      </pattern>
-    </defs>
-    {plan.walls.map((w, i) => {
-      const x = X(w.x), y = Y(w.y), ww = Math.max(2, w.w * scale), hh = Math.max(2, w.h * scale);
-      return <g key={i} opacity={p}>
-        <rect x={x} y={y} width={ww} height={hh} fill="url(#wallHatch)" />
-        <rect x={x} y={y} width={ww} height={hh} fill="none" strokeWidth={w.kind === 'exterior' ? 2.2 : 1.5} style={{stroke: 'var(--ink)'}} />
-      </g>;
-    })}
-    {plan.openings.map((o, i) => {
-      const horiz = o.w >= o.h;
-      const x = X(o.x), y = Y(o.y), w = Math.max(2, o.w * scale), h = Math.max(2, o.h * scale);
-      if (o.type === 'window') {
-        return <g key={i} opacity={p}>
-          <rect x={x} y={y} width={w} height={h} fill="#EEF3FA" />
-          {horiz ? [0.2, 0.5, 0.8].map((t) => <line key={t} x1={x - 3} x2={x + w + 3} y1={y + h * t} y2={y + h * t} strokeWidth={t === 0.5 ? 1.6 : 1.1} style={{stroke: 'var(--ink)'}} />)
-            : [0.2, 0.5, 0.8].map((t) => <line key={t} y1={y - 3} y2={y + h + 3} x1={x + w * t} x2={x + w * t} strokeWidth={t === 0.5 ? 1.6 : 1.1} style={{stroke: 'var(--ink)'}} />)}
-        </g>;
-      }
-      if (o.type === 'slider') {
-        return <g key={i} opacity={p} strokeWidth={1.3} style={{stroke: 'var(--ink)'}}>
-          <line x1={x} x2={x + w} y1={y + h * 0.35} y2={y + h * 0.35} />
-          <line x1={x} x2={x + w} y1={y + h * 0.65} y2={y + h * 0.65} />
-        </g>;
-      }
-      if (!o.leaf.length) return null;
-      const [hinge, tip] = o.leaf;
-      const len = Math.hypot(tip[0] - hinge[0], tip[1] - hinge[1]);
-      const closed: [number, number] = horiz ? [hinge[0] + (o.w >= o.h ? o.w : 0), hinge[1]] : [hinge[0], hinge[1] + o.h];
-      const r = Math.max(8, len * scale);
-      return <g key={i} opacity={p} fill="none" strokeWidth={1.6} style={{stroke: 'var(--ink)'}}>
-        <line x1={X(hinge[0])} y1={Y(hinge[1])} x2={X(tip[0])} y2={Y(tip[1])} />
-        <path d={`M ${X(tip[0])} ${Y(tip[1])} A ${r} ${r} 0 0 1 ${X(closed[0])} ${Y(closed[1])}`} strokeDasharray="5 3" />
-      </g>;
-    })}
-    <polyline points={flow} fill="none" strokeWidth={2.5} strokeDasharray="7 5" opacity={p} style={{stroke: 'var(--acc)'}} />
-    {plan.flow[0] && <polygon points={`${X(plan.flow[0][0])},${Y(plan.flow[0][1]) - 11} ${X(plan.flow[0][0]) - 7},${Y(plan.flow[0][1]) + 7} ${X(plan.flow[0][0]) + 7},${Y(plan.flow[0][1]) + 7}`} opacity={p} style={{fill: 'var(--acc)'}} />}
-    {plan.flow.at(-1) && <circle cx={X(plan.flow.at(-1)![0])} cy={Y(plan.flow.at(-1)![1])} r={5} opacity={p} style={{fill: 'var(--acc)'}} />}
-    {plan.rooms.map((r) => <g key={r.name} opacity={p}>
-      <text x={X(r.x + r.w / 2)} y={Y(r.y + r.h / 2) - 2} textAnchor="middle" fontFamily="Health" fontWeight={700} fontSize={30} style={{fill: 'var(--ink)'}}>{r.name}</text>
-      <text x={X(r.x + r.w / 2)} y={Y(r.y + r.h / 2) + 28} textAnchor="middle" fontFamily="Health" fontWeight={700} fontSize={28} style={{fill: 'var(--faint)'}}>{(r.w * r.h / 1e6).toFixed(1)}㎡</text>
-    </g>)}
-    <g opacity={p} style={{stroke: 'var(--ink)', fill: 'var(--ink)'}}>
-      <line x1={X(minX)} x2={X(maxX)} y1={dimY} y2={dimY} strokeWidth={1.4} />
-      <line x1={X(minX)} x2={X(minX)} y1={dimY - 6} y2={dimY + 6} strokeWidth={1.4} />
-      <line x1={X(maxX)} x2={X(maxX)} y1={dimY - 6} y2={dimY + 6} strokeWidth={1.4} />
-      <text x={(X(minX) + X(maxX)) / 2} y={dimY - 8} textAnchor="middle" fontFamily="Health" fontSize={28} fontWeight={700}>{plan.dimension.mm}</text>
-    </g>
-    <g opacity={p} transform={`translate(${rect.x + rect.w - 56}, ${rect.y + 28})`}>
-      <polygon points="0,-16 6,4 -6,4" style={{fill: 'var(--ink)'}} />
-      <text y={22} textAnchor="middle" fontFamily="Health" fontSize={28} fontWeight={700} style={{fill: 'var(--ink)'}}>北</text>
-    </g>
-  </svg>;
-};
+/** 户型图图框：大卡里放真实比例的户型图素材（SVG 已转轮廓），不在卡里塞字。 */
+const PlanFrame: React.FC<{rect: Rect; p: number; src: string}> = ({rect, p, src}) => <div data-viz="floorplan" style={{position: 'absolute', left: rect.x, top: rect.y, width: rect.w, height: rect.h, borderRadius: 32, overflow: 'hidden',
+  background: '#0F1B33', border: '1px solid var(--edge, rgba(214,228,255,0.26))', boxShadow: '0 20px 50px rgba(6,10,18,0.40)', opacity: Math.min(1, p), transform: `scale(${0.98 + 0.02 * Math.min(1, p)})`}}>
+  <Img src={staticFile(src)} style={{width: '100%', height: '100%', objectFit: 'contain'}} />
+  <div data-fit="tag" style={{position: 'absolute', top: 20, right: 20, padding: '8px 30px', borderRadius: 999, fontFamily: FONT.body, fontWeight: 700, fontSize: TYPE.chip, ...toneMat('navy'), ...toneVars('navy') as any, color: 'var(--ink)'}}>示例户型</div>
+</div>;
 
 const CupFig: React.FC<{p: number}> = ({p}) => {
   const cup = sceneOf('paymentCup').cards.find((c) => c.id === 'cup')!;
@@ -273,8 +213,7 @@ export const NewCardView: React.FC<{layout: string; st: Starts; data?: any; text
     {layout === 'buildingSection' && <SectionFig p={p0} />}
     {layout === 'paymentCup' && <CupFig p={p0} />}
     <Lines scene={scene} st={st} dur={dur} />
-    {scene.planId && (() => { const pr = layoutRects('planSplit').plan; return <div data-deco style={{position: 'absolute', left: pr.x - 28, top: pr.y - 36, width: pr.w + 56, height: pr.h + 64, borderRadius: 36, opacity: p0, ...toneMat('navy')}} />; })()}
-    {scene.planId && <div style={{...(toneVars('navy') as any)}}><FloorFig plan={planById(scene.planId)} rect={layoutRects('planSplit').plan} p={p0} /></div>}
+    {scene.planAsset && <PlanFrame rect={layoutRects('planSplit').plan} p={p0} src={scene.planAsset} />}
     {scene.cards.filter((c) => c.id !== 'cup').map((c) => {
       const i = scene.cards.indexOf(c);
       return <CardFace key={c.id} card={c} p={glassEnter(f, st(i), 'shaped')} i={i} yaw={depth.yaw} starts={data?.textAnchors?.[c.id]?.map((key: string) => textAt?.(key) ?? 0)} />;

@@ -5,7 +5,7 @@ import {GlassSceneCtx, ReadabilityCtx, TextVeil, bump,
   IconRow, Kicker, MediaFrame, ProgressRing, QuoteBlock, SoftCallout, SplitType, StatPill, Timeline, UnderlineDraw, prog, glassMat,
   LiveFrameCtx,
 } from './components';
-import {layoutRects, titleRect, usesTitle, NEW_LAYOUTS} from './layouts.ts';
+import {layoutRects, titleRect, usesTitle, NEW_LAYOUTS_ALL} from './layouts.ts';
 import {CARDS51_VIEWS} from '../cards51/views';
 import {GRID, splitRows, type Rect} from './grid.ts';
 import {COLOR, FONT, MOTION, SPRING, TYPE, FROST, glassEnter, steadySpring as spring} from './tokens';
@@ -13,8 +13,8 @@ import type {Shot, TimelineWindow} from './types';
 import {entranceAt} from '../sync/timeline.ts';
 import {SEQ, SEQ_KEY, recordSeqItem, normalizeSeqAnchors, actIndex} from './sequence.ts';
 import {DomCheck} from './domcheck';
-import {LineChartReveal, BarGlow} from './DataCharts';
-import {RankBars, Waffle, Balance, YearRing, FormulaCalc} from './DataCharts2';
+import {LineChartReveal, BarGlow, RankBars, ChartPanel} from './DataCharts';
+import {Waffle, Balance, YearRing, FormulaCalc} from './DataCharts2';
 import {KeywordCascade, ChecklistFill, VsScore, TipStack, NumberedReveal, KpiGrid} from './mgCards';
 import {FloorLadder, PaymentSplit, AmenityOrbit, PitfallBoard, PriceStep, DecisionFork, DistrictTags, LoanDial, LayerReveal} from './mgEstate';
 import {NewCardView} from './mgNew';
@@ -183,11 +183,12 @@ const QuoteStack: React.FC<{s: Shot; dur: number}> = ({s, dur}) => {
 
 const RingFeature: React.FC<{s: Shot}> = ({s}) => {
   const R = layoutRects('ringFeature'); const d = s.data; const ring = R.ring; const at = useAt();
-  const size = Math.min(ring.w, ring.h);
+  const size = ring.h - 70;
   return <>
     <MediaFrame r={R.media} start={at('media', 20)} {...d.media} from="left" soft />
-    <ProgressRing cx={ring.x + size / 2} cy={ring.y + ring.h / 2} size={size} start={at('ring', 18)} ratio={d.ring.ratio} label={d.ring.label} value={d.ring.value} />
-    {d.ring.note && <div data-role="body" style={{position: 'absolute', left: ring.x + size + 48, top: ring.y, width: ring.w - size - 48, height: ring.h, display: 'flex', alignItems: 'center',
+    <div data-viz style={{position: 'absolute', left: ring.x, top: ring.y, width: ring.w, height: ring.h, ...glassMat('dark'), borderRadius: 36, opacity: prog(useCurrentFrame(), at('ring', 18) - 8, 14)}} />
+    <ProgressRing cx={ring.x + 40 + size / 2} cy={ring.y + ring.h / 2} size={size} start={at('ring', 18)} ratio={d.ring.ratio} label={d.ring.label} value={d.ring.value} />
+    {d.ring.note && <div data-role="body" style={{position: 'absolute', left: ring.x + size + 96, top: ring.y, width: ring.w - size - 140, height: ring.h, display: 'flex', alignItems: 'center',
       fontFamily: FONT.body, fontWeight: 700, fontSize: TYPE.body, lineHeight: 1.4, color: COLOR.sub, whiteSpace: 'pre-line'}}><GoldText text={d.ring.note} /></div>}
     <StatPill r={R.a} start={at('a', Math.max(28, at('ring', 18) + 10))} {...d.a} hi />
   </>;
@@ -224,10 +225,19 @@ const clean = (t?: string) => (t && !OUTRO_BAN.test(t) ? t : undefined);
 const OutroHost: React.FC<{s:Shot}>=({s})=>{
  const d=s.data,ch:string|false=d.character===false?false:(d.character??'media/character/xiaoteng_outro.png'),at=useAt();
  const R=layoutRects('outroHost',0,{character:!!ch});
- return <OutroScene data={{...d,line:clean(d.line)??'',note:clean(d.note)}} R={R} ch={ch} lineAt={at('line',14)} noteAt={at('note',48)} accountAt={at('account',70)}/>;
+ const pts:string[]=(d.points??[]).map((x:string)=>clean(x)).filter(Boolean) as string[];
+ const lineAt=at('line',14),pointAt=pts.map((_,i)=>at(`r${i}`,lineAt+20+i*16)),noteAt=at('note',(pointAt.at(-1)??lineAt)+20),accountAt=at('account',noteAt+22);
+ return <OutroScene data={{...d,line:clean(d.line)??'',points:pts,note:clean(d.note),bubble:clean(d.bubble),eyebrow:clean(d.eyebrow)}} R={R} ch={ch} lineAt={lineAt} pointAt={pointAt} noteAt={noteAt} accountAt={accountAt}/>;
 };
 
-const dv = (name: any, C: any, fb = 16) => (({s}: {s: Shot}) => { const at = useAt(); return <C r={layoutRects(name).chart} start={at('draw', fb)} {...s.data} {...(name === 'formulaCalc' ? {termStarts: s.data.terms.map((_: any, i: number) => at(`term${i}`, fb + i * 14)), resultStart: at('result', fb + 14 * s.data.terms.length + 6)} : {})} />; }) as React.FC<{s: Shot; dur: number}>;
+const dv = (name: any, C: any, fb = 16) => (({s}: {s: Shot}) => { const at = useAt();
+  const items: any[] | undefined = s.data.bars ?? s.data.rows ?? s.data.pts; const base = at('draw', fb);
+  // 柱/行/折线点：跟口播锚点 r0/r1…依次生长（无锚点按 18 帧间隔兜底）
+  const itemStarts = items && name !== 'formulaCalc' ? items.map((_: any, i: number) => at(`r${i}`, base + 8 + i * (items.length > 5 ? 12 : 18))) : undefined;
+  // 水环/方块格/天平没有自带底板：补一块深色玻璃 data-viz 面板，内容内缩，保证对比度
+  const R0 = layoutRects(name).chart, pad = name === 'waffle' || name === 'balance' || name === 'yearRing';
+  const R = pad ? {x: R0.x + 40, y: R0.y + 32, w: R0.w - 80, h: R0.h - 64} : R0;
+  return <>{pad && <ChartPanel r={R0} kind={name} start={base}>{null}</ChartPanel>}<C r={R} start={base} itemStarts={itemStarts} {...s.data} {...(name === 'formulaCalc' ? {termStarts: s.data.terms.map((_: any, i: number) => at(`term${i}`, fb + i * 14)), resultStart: at('result', fb + 14 * s.data.terms.length + 6)} : {})} /></>; }) as React.FC<{s: Shot; dur: number}>;
 const DATA_VIEWS = {
   lineReveal: dv('lineReveal', LineChartReveal, 20), barGlow: dv('barGlow', BarGlow, 18), rankBars: dv('rankBars', RankBars),
   waffle: dv('waffle', Waffle, 14), balance: dv('balance', Balance, 14), yearRing: dv('yearRing', YearRing, 12), formulaCalc: dv('formulaCalc', FormulaCalc, 14),
@@ -267,7 +277,7 @@ const ESTATE_VIEWS = {
   loanDial: ev('loanDial', LoanDial, (d) => d.stats.length + 1, 14),
   layerReveal: ev('layerReveal', LayerReveal, (d) => d.layers.length, 18),
 };
-const NEW_VIEWS = Object.fromEntries(NEW_LAYOUTS.map((name) => [name, (({s, dur}: {s: Shot; dur: number}) => {
+const NEW_VIEWS = Object.fromEntries(NEW_LAYOUTS_ALL.map((name) => [name, (({s, dur}: {s: Shot; dur: number}) => {
   const at = useAt();
   const st = (i: number) => at(`r${i}`, 12 + i * Math.min(16, Math.max(14, (dur - 48) / 6)));
   return <NewCardView layout={name} st={st} data={s.data} textAt={(key) => at(key, 0)} dur={dur} />;
@@ -317,7 +327,7 @@ export const ShotView: React.FC<{s: Shot; dur: number; exampleData?: boolean; an
   const cam = {...camFor(s.layout), move: fx ?? 1};
   // v6：所有 MG 前景到位即停，背景自然运镜保留（含旧版式与 fx 路径）。
   const fgTX = 0, fgTY = 0, fgScale = 1;
-  const body = <GlassSceneCtx.Provider value={{bg,cam}}><ReadabilityCtx.Provider value={{bright:(bg.luma ?? .45)>.48}}><AbsoluteFill style={{'--glass-lift':(bg.luma ?? .45)<.3?.35:0} as React.CSSProperties}>
+  const body = <GlassSceneCtx.Provider value={{bg,cam}}><ReadabilityCtx.Provider value={{bright:(bg.luma ?? .45)>.48}}><AbsoluteFill style={{'--glass-lift':(bg.luma ?? .45)<.3?.35:0, color: COLOR.pearlInk} as React.CSSProperties}>
     <CamCtx.Provider value={cam}>
       <Backdrop src={bg.src} video={bg.video} blur={bg.blur} dark={bg.dark} trimStart={bg.trim} neutral={!!s.data.hookRhythm} />
     </CamCtx.Provider>
@@ -332,7 +342,7 @@ export const ShotView: React.FC<{s: Shot; dur: number; exampleData?: boolean; an
   // 音画同步：不再提前 1 秒定格（会和口播错位），只在退场转场期间冻结前景
   const freezeAt = dur - 1;
   const check = !!(getInputProps() as any)?.check && f >= freezeAt;
-  const zones: Record<string, Rect> = {...layoutRects(s.layout, s.data?.steps?.length ?? s.data?.rows?.length ?? 3, {character: !!s.data?.character, windows: !!s.data?.windows?.length}),
+  const zones: Record<string, Rect> = {...layoutRects(s.layout, s.data?.steps?.length ?? s.data?.rows?.length ?? 3, {character: /^outro/.test(s.layout) ? s.data?.character !== false : !!s.data?.character, windows: !!s.data?.windows?.length}),
     _kicker: {x: 96, y: 56, w: 1240, h: 36}, _example: {x: 1400, y: 56, w: 232, h: 36}};
   if (usesTitle(s.layout)) zones._title = titleRect();
   return <>
@@ -357,7 +367,7 @@ const Beats: React.FC<{s: Shot}> = ({s}) => {
       <div style={{position: 'absolute', left: '50%', top: '50%', width: 140, height: 140, marginLeft: -70, marginTop: -70, borderRadius: '50%', border: `3px solid ${fg}`, opacity: (1 - ring) * 0.8, transform: `scale(${0.4 + ring * 1.6})`}} />
       <div style={{display: 'flex', alignItems: 'center', gap: 12, whiteSpace: 'nowrap', padding: '12px 28px', borderRadius: 999, ...glassMat('dark', bg),
         fontFamily: FONT.body, fontWeight: 700, fontSize: 34, color: FROST.ink}}>
-        {b.icon && <span style={{display: 'inline-flex', width: 40, height: 40, borderRadius: '50%', alignItems: 'center', justifyContent: 'center', background: fg, color: '#1d1b19', fontSize: 28}}>{b.icon}</span>}
+        {b.icon && <span style={{display: 'inline-flex', width: 40, height: 40, borderRadius: '50%', alignItems: 'center', justifyContent: 'center', background: fg, color: COLOR.pearlInk, fontSize: 28}}>{b.icon}</span>}
         {b.t}
       </div>
     </div>;

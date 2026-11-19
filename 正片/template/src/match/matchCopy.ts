@@ -1,6 +1,6 @@
 /** 文案 → 画面。纯计算：意图、容量、反重复、色调。不截图。 */
 import rules from '../../match_rules.json' with {type: 'json'};
-import {ESTATE_LAYOUTS} from '../style/layouts.ts';
+import {ESTATE_LAYOUTS, RETIRED_LAYOUTS} from '../style/layouts.ts';
 import {diversityFaults,STRUCTURES,NEEDS_EVIDENCE} from './diversity.ts';
 
 export const LAYOUT_KEY: Record<string, string> = {
@@ -21,6 +21,7 @@ const KEY_OF = Object.fromEntries(Object.entries(LAYOUT_KEY).map(([k, v]) => [v,
 const DATA_CHARTS = new Set(['lineReveal', 'barGlow', 'rankBars', 'waffle', 'balance', 'yearRing', 'formulaCalc']);
 const ESTATE = new Set<string>(ESTATE_LAYOUTS);
 const BANNED = /投资|一定|必涨/;
+const RETIRED = new Set<string>(RETIRED_LAYOUTS);
 
 export type ShotIn = {text: string; count?: number; seconds?: number; evidenced?: boolean; title?: string; struct?: string};
 export type History = {recentLayouts?: string[][]; signature?: string[]; pose?: string; media?: {id: string; episode: number; hero?: boolean}[]};
@@ -124,6 +125,7 @@ const choose = (intent: string, shot: ShotIn, index: number, used: Used, hist: H
   const lastForIntent = new Set((hist.recentLayouts ?? [])[0] ?? []);
   const hard = (key: string, relax: 'none' | 'topic' | 'newmax') => {
     const name = LAYOUT_KEY[key] ?? key;
+    if (RETIRED.has(name)) return false; // 5.1.1：退役的大文字卡永不推荐
     if (!fits(key, shot)) return false;
     if (!evidenced && NEEDS_EVIDENCE.has(name)) return false;
     if (BANNED.test(shot.title ?? '') || BANNED.test(shot.text)) return false;

@@ -1,7 +1,8 @@
 // 5.0 MG 版式活目录：每个默认版式一镜，示例数据（画面带「示例」角标）。新增版式必须在这里登记一镜。
 import type {Shot} from '../style/types.ts';
 import {RE10} from './shots-mg-re10.ts';
-import {ARCHIVE_LAYOUTS, isDefaultLayout} from '../style/layouts.ts';
+import {ARCHIVE_LAYOUTS, RETIRED_LAYOUTS, isDefaultLayout} from '../style/layouts.ts';
+const live = (s: Shot) => !(RETIRED_LAYOUTS as readonly string[]).includes(s.layout);
 import {SHOTS as FLOOR} from './floor-ref-shots.ts';
 const V = (f: string) => ({src: `media/stock/${f}.mp4`, video: true, dark: 0.55});
 const G = (f: string) => `media/gen/${f}`;
@@ -52,8 +53,8 @@ const HISTORICAL_SAMPLES: Shot[] = ([
 
 /** 存档复核入口（不注册默认预览 composition）。 */
 export const ARCHIVE_GALLERY = HISTORICAL_SAMPLES.filter(s => (ARCHIVE_LAYOUTS as readonly string[]).includes(s.layout));
-/** 26套 = 原核心10（outroAir别名不重复）+ 数据7 + 已定房产9；无户型对比/旧6套。 */
+/** 24套 = 核心 + 数据7 + 房产8；5.1.1 起不含已退役的纯文字大卡版式（quoteStack / pitfallBoard）。 */
 export const GALLERY: Shot[] = [
-  ...HISTORICAL_SAMPLES.filter(s => isDefaultLayout(s.layout) && s.layout !== 'outroHost'),
-  ...RE10, pick('outroHost'),
+  ...HISTORICAL_SAMPLES.filter(s => isDefaultLayout(s.layout) && s.layout !== 'outroHost' && live(s)),
+  ...RE10.filter(live), pick('outroHost'),
 ].map((s, i) => ({...s, id: `G${String(i + 1).padStart(2, '0')}`}));
