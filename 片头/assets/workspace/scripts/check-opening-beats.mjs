@@ -3,4 +3,4 @@ import {openingConfig} from '../src/openingConfig.ts';
 import {openingFaults, beatsOf} from '../src/openingBeats.ts';
 const errs = openingFaults(openingConfig);
 if (errs.length) { console.error('✗ 片头节拍检查失败：\n  - ' + errs.join('\n  - ')); process.exit(1); }
-console.log(`✓ 片头节拍通过：${beatsOf(openingConfig).length} 拍，相邻 ≤1.5s，逐句取自口播`);
+console.log(`✓ 片头节拍通过：${beatsOf(openingConfig).length} 拍，相邻 ≤1.5s，片头 = 口播第 1 句（时长与第 1 句一致），逐字取自口播`);

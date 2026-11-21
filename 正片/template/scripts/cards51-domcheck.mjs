@@ -14,7 +14,7 @@ for(const i of [0,1,2,3,4]){const inputProps={check:true,only:i,palette:'inkBlue
  for(const mf of [40,95]){let s=null;await renderStill({serveUrl,composition,frame:mf,inputProps,output:`out/dom51/S${i+1}_sub${mf}.png`,chromiumOptions:{gl:'angle'},
   onBrowserLog:(l)=>{const m=l.text.match(/SUBCHECK\|\d+\|(.*)/);if(m)s=m[1]==='null'?null:JSON.parse(m[1]);}});
   if(!s){console.log(`  字幕@${mf}: 未渲染`);bad++;continue;}const cx=s.x+s.w/2,e=[];
-  if(s.x<96||s.x+s.w>1824)e.push('横向越界');if(Math.abs(cx-960)>2)e.push('未居中 '+cx.toFixed(1));if(s.y<900||s.y+s.h>1080)e.push('纵向越界');if(s.fs<38||s.fs>46)e.push('字号 '+s.fs);if(s.over)e.push('行内溢出');
+  if(s.x<96+48||s.x+s.w>1632-48)e.push('横向越界/贴边');if(s.lines!==1)e.push(`${s.lines} 行（5.1.5 强制单行）`);if(Math.abs(cx-960)>2)e.push('未居中 '+cx.toFixed(1));if(s.y<900||s.y+s.h>1080)e.push('纵向越界');if(s.fs<38||s.fs>46)e.push('字号 '+s.fs);if(s.over)e.push('行内溢出');
   console.log(`  字幕@${mf} ${e.length?'✗ '+e.join('; '):'✓'} 中心 ${Math.round(cx)} y ${Math.round(s.y)}–${Math.round(s.y+s.h)} 宽 ${Math.round(s.w)} 字号 ${s.fs}`);bad+=e.length;}}
 // 5.1.1：选卡池其余版式（画廊 24 + 新卡 9）也逐镜做 DOM 检查：近黑文字 / 字阶 / 纯文字大卡 / 字号下限 / 出区
 import {GALLERY} from '../src/gallery/shots-mg-gallery.ts';
@@ -30,5 +30,16 @@ if (!process.argv.includes('--quick')) for (const [id, shots] of [['MgGallery', 
     if (!got) { console.log(`${shots[i].layout}: 未拿到 DOM 检查结果`); bad++; continue; }
     console.log(`${shots[i].layout} DOM ${got.e.length ? '✗ ' + got.e.join('; ') : '✓'}`); bad += got.e.length;
   }
+}
+// 5.1.5：图片动效组件 4 款（ImageScene）也做 DOM 检查：说明卡字阶 / 出区 / 近黑字 / 纯文字大卡
+import {IMAGE_GALLERY} from '../src/gallery/shots-image.ts';
+for (let i = 0; i < IMAGE_GALLERY.length; i++) {
+  const inputProps = {check: true, only: i, palette: 'inkBlue'};
+  const composition = await selectComposition({serveUrl, id: 'ImageScene', inputProps});
+  let got = null;
+  await renderStill({serveUrl, composition, frame: composition.durationInFrames - 1, inputProps, output: `out/dom51/${IMAGE_GALLERY[i].layout}.png`, chromiumOptions: {gl: 'angle'}, timeoutInMilliseconds: 120000,
+    onBrowserLog: (l) => { const m = l.text.match(/CHECK\|([^|]+)\|(\[.*\])/); if (m) got = {id: m[1], e: JSON.parse(m[2])}; }});
+  if (!got) { console.log(`${IMAGE_GALLERY[i].layout}: 未拿到 DOM 检查结果`); bad++; continue; }
+  console.log(`${IMAGE_GALLERY[i].layout} DOM ${got.e.length ? '✗ ' + got.e.join('; ') : '✓'}`); bad += got.e.length;
 }
 process.exit(bad?1:0);

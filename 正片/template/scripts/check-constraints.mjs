@@ -22,7 +22,7 @@ if (DEFAULT_LAYOUTS.length !== 24) errs.push(`默认版式 ${DEFAULT_LAYOUTS.len
 if (ESTATE_LAYOUTS.length !== 8) errs.push(`房产 MG ${ESTATE_LAYOUTS.length} ≠ 8`);
 if (NEW_LAYOUTS.length !== 9) errs.push(`新卡 ${NEW_LAYOUTS.length} ≠ 9（5.1.1 退役 8 款纯文字大卡）`);
 if (SMALL_LAYOUTS.length !== 5) errs.push(`5.1 小卡组合 ${SMALL_LAYOUTS.length} ≠ 5`);
-if (POOL_LAYOUTS.length !== 38) errs.push(`选卡池 ${POOL_LAYOUTS.length} ≠ 38（24 + 新卡 9 + 小卡 5）`);
+if (POOL_LAYOUTS.length !== 42) errs.push(`选卡池 ${POOL_LAYOUTS.length} ≠ 42（24 + 新卡 9 + 小卡 5 + 图片组件 4）`);
 for (const name of SMALL_LAYOUTS) if (DEFAULT_LAYOUTS.includes(name) || NEW_LAYOUTS.includes(name)) errs.push(`${name} 不应替换已有版式`);
 for (const name of NEW_LAYOUTS) if (DEFAULT_LAYOUTS.includes(name)) errs.push(`${name} 不应替换默认 26`);
 
@@ -180,7 +180,7 @@ const REGISTERED_LAYOUTS = new Set([...POOL_LAYOUTS, ...ARCHIVE_LAYOUTS, 'outroA
 
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^\\])\/\/.*$/gm, '$1');
 const lineNo = (src, index) => src.slice(0, index).split('\n').length;
-const layoutFault = (where, name) => `${where}: ${RETIRED_REPLACEMENT[name] ? `版式「${name}」已在 5.1.1 退役（纯文字大卡），请改用「${RETIRED_REPLACEMENT[name]}」；` : ''}版式「${name}」未在 layouts.ts 的 LayoutName 登记。正片只能用已登记官方版式（选卡池 38 种；存档 6 套不默认推荐；outroAir 只是 outroHost 的别名；5.1.1 退役的纯文字大卡版式不可用）。不要自造 phrase、broll、chapterTitle、wordCompare、commuteCalc 或 opening。塞不下就换 matchEpisode() 的下一个官方候选或拆镜，并继续走 ShotView / sceneOf。`;
+const layoutFault = (where, name) => `${where}: ${RETIRED_REPLACEMENT[name] ? `版式「${name}」已在 5.1.1 退役（纯文字大卡），请改用「${RETIRED_REPLACEMENT[name]}」；` : ''}版式「${name}」未在 layouts.ts 的 LayoutName 登记。正片只能用已登记官方版式（选卡池 42 种；存档 6 套不默认推荐；outroAir 只是 outroHost 的别名；5.1.1 退役的纯文字大卡版式不可用）。不要自造 phrase、broll、chapterTitle、wordCompare、commuteCalc 或 opening。塞不下就换 matchEpisode() 的下一个官方候选或拆镜，并继续走 ShotView / sceneOf。`;
 
 /** 从 shots 源码里取出 layout: '…' / "layout": "…"。 */
 export const layoutFaultsInCode = (source, label) => {
@@ -283,5 +283,5 @@ if (!demoSrc.includes("from '../style/archetypes'") || !demoSrc.includes('<ShotV
 export const constraintErrors = errs;
 if (process.argv[1] && process.argv[1].endsWith('check-constraints.mjs')) {
   if (errs.length) { console.log('✗ 约束\n' + errs.join('\n')); process.exit(1); }
-  console.log(`✓ 约束通过：选卡池 ${POOL_LAYOUTS.length}（默认 ${DEFAULT_LAYOUTS.length} + 新卡 ${NEW_LAYOUTS.length} + 小卡 ${SMALL_LAYOUTS.length}），大卡必须放图，户型图素材，连线，字体实测，对比度，匹配，镜头表版式已登记`);
+  console.log(`✓ 约束通过：选卡池 ${POOL_LAYOUTS.length}（默认 ${DEFAULT_LAYOUTS.length} + 新卡 ${NEW_LAYOUTS.length} + 小卡 ${SMALL_LAYOUTS.length} + 图片组件 4），大卡必须放图，户型图素材，连线，字体实测，对比度，匹配，镜头表版式已登记`);
 }

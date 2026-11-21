@@ -7,6 +7,7 @@ import {GlassSceneCtx, ReadabilityCtx, TextVeil, bump,
 } from './components';
 import {layoutRects, titleRect, usesTitle, NEW_LAYOUTS_ALL} from './layouts.ts';
 import {CARDS51_VIEWS} from '../cards51/views';
+import {IMAGE_VIEWS} from '../images51/ImageViews';
 import {GRID, splitRows, type Rect} from './grid.ts';
 import {COLOR, FONT, MOTION, SPRING, TYPE, FROST, glassEnter, steadySpring as spring} from './tokens';
 import type {Shot, TimelineWindow} from './types';
@@ -14,6 +15,9 @@ import {entranceAt} from '../sync/timeline.ts';
 import {SEQ, LINK_GAP, SEQ_KEY, recordSeqItem, normalizeSeqAnchors, actIndex} from './sequence.ts';
 import {LINK_MODE, FALLBACK_MIN_GAP} from './sequence-spec.ts';
 import {DomCheck} from './domcheck';
+import {cards51Specs} from '../cards51/specs.ts';
+import {imageSpecs} from '../images51/specs.ts';
+import {SMALL_LAYOUTS, IMAGE_LAYOUTS} from './layouts.ts';
 import {LineChartReveal, BarGlow, RankBars, ChartPanel} from './DataCharts';
 import {Waffle, Balance, YearRing, FormulaCalc} from './DataCharts2';
 import {KeywordCascade, ChecklistFill, VsScore, TipStack, NumberedReveal, KpiGrid} from './mgCards';
@@ -288,7 +292,7 @@ const NEW_VIEWS = Object.fromEntries(NEW_LAYOUTS_ALL.map((name) => [name, (({s, 
   const st = (i: number) => at(`r${i}`, 12 + i * Math.min(16, Math.max(14, (dur - 48) / 6)));
   return <NewCardView layout={name} st={st} data={s.data} textAt={(key) => at(key, 0)} dur={dur} />;
 }) as React.FC<{s: Shot; dur: number}>]));
-const SMALL_VIEWS = Object.fromEntries(Object.entries(CARDS51_VIEWS).map(([name, C]) => [name, (({s, dur}: {s: Shot; dur: number}) => { const at = useAt(); return <C s={s} dur={dur} at={at} />; }) as React.FC<{s: Shot; dur: number}>]));
+const SMALL_VIEWS = Object.fromEntries(Object.entries({...CARDS51_VIEWS, ...IMAGE_VIEWS}).map(([name, C]) => [name, (({s, dur}: {s: Shot; dur: number}) => { const at = useAt(); return <C s={s} dur={dur} at={at} />; }) as React.FC<{s: Shot; dur: number}>]));
 const VIEWS: Record<string, React.FC<{s: Shot; dur: number}>> = {
   ...SMALL_VIEWS,
   ...NEW_VIEWS,
@@ -338,8 +342,9 @@ export const ShotView: React.FC<{s: Shot; dur: number; exampleData?: boolean; an
       <Backdrop src={bg.src} video={bg.video} blur={bg.blur} dark={bg.dark} trimStart={bg.trim} neutral={!!s.data.hookRhythm} />
     </CamCtx.Provider>
     <AbsoluteFill style={{transform: `translate(${fgTX}px, ${fgTY}px) scale(${fgScale})`, transformOrigin: '50% 45%'}}>
-      {kt && <Kicker text={kt} plate={treat === 'bar'} />}
-      {exampleData && <ExampleMark />}
+      {/* 5.1.5 去杂：栏目眉标与「数据为示例」默认不显示（小Lin说式单层级）；确需时 shot.showKicker / shot.exampleMark = true */}
+      {kt && (s as any).showKicker === true && <Kicker text={kt} plate={treat === 'bar'} />}
+      {exampleData && (s as any).exampleMark === true && <ExampleMark />}
       {usesTitle(s.layout) && s.title && <Headline text={s.title} start={entranceAt(anchors.title, 2)} plate={treat === 'bar'} />}
       {View ? <SpatialMotion duration={dur}><View s={s} dur={dur} /></SpatialMotion> : null}
       {fx ? <Beats s={s} /> : null}
@@ -351,6 +356,9 @@ export const ShotView: React.FC<{s: Shot; dur: number; exampleData?: boolean; an
   const zones: Record<string, Rect> = {...layoutRects(s.layout, s.data?.steps?.length ?? s.data?.rows?.length ?? 3, {character: /^outro/.test(s.layout) ? s.data?.character !== false : !!s.data?.character, windows: !!s.data?.windows?.length}),
     _kicker: {x: 96, y: 56, w: 1240, h: 36}, _example: {x: 1400, y: 56, w: 232, h: 36}};
   if (usesTitle(s.layout)) zones._title = titleRect();
+  // 5.1.5：小卡/图片组件的卡位由 specs 自动适配并整组居中，DOM 区 = 各卡实际 spec 矩形
+  if ((SMALL_LAYOUTS as readonly string[]).includes(s.layout)) cards51Specs(s.layout, s.data).forEach((c) => { zones['_c_' + c.key] = c; });
+  if ((IMAGE_LAYOUTS as readonly string[]).includes(s.layout)) { const g = imageSpecs(s.layout, s.data); [...g.frames, ...g.cards].forEach((c) => { zones['_i_' + c.key] = c; }); }
   return <>
     <AnchorCtx.Provider value={anchors}><LiveFrameCtx.Provider value={f}>{f >= freezeAt ? <Freeze frame={freezeAt}>{body}</Freeze> : body}</LiveFrameCtx.Provider></AnchorCtx.Provider>
     {check && <DomCheck id={s.id} zones={zones} />}

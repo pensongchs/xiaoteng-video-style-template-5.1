@@ -8,7 +8,7 @@ function doctor() {
   if (systemError) errors.push(systemError);
   const missing = dependencyStatus();
   if (missing.length) errors.push('依赖缺失或版本不符：' + missing.join('、'));
-  for (const file of ['public/fonts/JiangChengLvDongSong.ttf','public/fonts/AlibabaHealth-Regular.ttf','public/fonts/AlibabaHealth-Bold.ttf','.runtime/browser.json']) {
+  for (const file of ['src/AsciiGradientBackground.jsx','public/fonts/JiangChengLvDongSong.ttf','public/fonts/AlibabaHealth-Regular.ttf','public/fonts/AlibabaHealth-Bold.ttf','.runtime/browser.json']) {
     if (!fs.existsSync(path.join(root, file))) errors.push('缺少资源：' + file);
   }
   if (!missing.length) {

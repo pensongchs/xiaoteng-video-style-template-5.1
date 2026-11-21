@@ -8,6 +8,7 @@ import type {Rect} from './grid.ts';
 import {PropertyArt,inferVisual} from './illustrations';
 import {PhotoCutout} from './PhotoCutout';
 import {connectionProgress} from './connections';
+import {TrailStrokes} from './LightTrail';
 import {SEQ, settleAt, linkStartAt, hubAt} from './sequence.ts';
 
 export type Starts = (i: number) => number;
@@ -43,7 +44,7 @@ export const FloorLadder: React.FC<{r: Rect; floors: {f: string; k: string; s: s
   const pos = (i: number) => ({x: r.x + i * dx, y: r.y + (n - 1 - i) * (h + gap)});
   return <>
     <svg data-deco style={{position:'absolute',left:0,top:0,width:1920,height:1080,overflow:'visible'}}>
-      {floors.slice(1).map((_,i)=>{const a=pos(i),b=pos(i+1),p=connectionProgress(f,st(i),st(i+1),{id:'floor'+i,from:i,to:i+1,fromKey:`r${i}`,toKey:`r${i+1}`,dur,pts:[[a.x+w/2,a.y-6],[b.x+w/2,b.y+h+6]],fromBox:{x:a.x,y:a.y,w,h},toBox:{x:b.x,y:b.y,w,h}});return <path key={i} d={`M${a.x+w/2},${a.y-6} V${a.y-11} H${b.x+w/2} V${b.y+h+6}`} fill="none" stroke="rgba(236,242,250,.94)" strokeWidth={3} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" data-link={'floor'+i} strokeDashoffset={1-p} opacity={p}/>;})}
+      {floors.slice(1).map((_,i)=>{const a=pos(i),b=pos(i+1),p=connectionProgress(f,st(i),st(i+1),{id:'floor'+i,from:i,to:i+1,fromKey:`r${i}`,toKey:`r${i+1}`,dur,pts:[[a.x+w/2,a.y-6],[b.x+w/2,b.y+h+6]],fromBox:{x:a.x,y:a.y,w,h},toBox:{x:b.x,y:b.y,w,h}});return <TrailStrokes key={i} d={`M${a.x+w/2},${a.y-6} V${a.y-11} H${b.x+w/2} V${b.y+h+6}`} p={p} id={'floor'+i} tipAt={[b.x+w/2,b.y+h+6]} />;})}
     </svg>
     {floors.map((fl, i) => { const p = useEnter(st(i)); const hi = hiOf(f, i, n, st); const lit = f >= st(i); const q = pos(i);
       const tone: Tone = fl.tone ?? (['blue', 'green', 'gold', 'blue', 'gold'] as Tone[])[i % 5];
@@ -83,8 +84,7 @@ export const PaymentSplit: React.FC<{R: Record<string, Rect>; total: {k: string;
       background: segBg(p.tone), boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)', opacity: c01(p0)}} />)}
     <svg data-deco style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'visible'}}>
       {parts.map((p, i) => { const x0 = segX[i] + segW[i] / 2, y0 = top.y + top.h / 2 + 24, x1 = low.x + i * (cw + 40) + cw / 2, y1 = low.y - 4; const a = connectionProgress(f,hubAt(st(0)),st(i),{id:'part'+i,from:'hub',to:i,toKey:`r${i}`,dur,pts:[[x0,y0],[x1,y1]],fromBox:top,toBox:{x:low.x+i*(cw+40),y:low.y,w:cw,h:low.h}});
-        return <path key={i} d={`M${x0},${y0} C${x0},${y0 + 120} ${x1},${y1 - 120} ${x1},${y1}`} fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth={2.5} pathLength={1}
-          strokeDasharray="1 1" data-link={'part'+i} strokeDashoffset={1 - a} />; })}
+        return <TrailStrokes key={i} d={`M${x0},${y0} C${x0},${y0 + 120} ${x1},${y1 - 120} ${x1},${y1}`} p={a} id={'part'+i} tipAt={[x1,y1]} />; })}
     </svg>
     {parts.map((p, i) => { const q = useEnter(st(i)); const hi = hiOf(f, i, n, st); const tone = p.tone ?? 'blue';
       return <div key={i} style={{...frost(tone), left: low.x + i * (cw + 40), top: low.y, width: cw, height: low.h, padding: '26px 36px',
@@ -110,7 +110,7 @@ export const AmenityOrbit: React.FC<{r: Rect; core: {t: string; s?: string}; tag
       {tags.map((_, i) => { const a=-Math.PI/2+i*2*Math.PI/n+rot,dx=Math.cos(a)*RX,dy=Math.sin(a)*RY,len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len;
         const edge=Math.min(Math.abs(ux)>.001?150/Math.abs(ux):Infinity,Math.abs(uy)>.001?52/Math.abs(uy):Infinity)+6;
         const p = connectionProgress(f,hubAt(st(0)),st(i),{id:'orbit'+i,from:'hub',to:i,toKey:`r${i}`,dur,pts:[[cx+ux*148,cy+uy*148],[cx+dx-ux*edge,cy+dy-uy*edge]],fromBox:{x:cx-140,y:cy-140,w:280,h:280},toBox:{x:cx+dx-150,y:cy+dy-52,w:300,h:104}});
-        return <line key={i} x1={cx+ux*148} y1={cy+uy*148} x2={cx+dx-ux*edge} y2={cy+dy-uy*edge} stroke="rgba(236,242,250,.94)" strokeWidth={3} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" data-link={'orbit'+i} strokeDashoffset={1-p} opacity={p}/>; })}
+        return <TrailStrokes key={i} d={`M${cx+ux*148},${cy+uy*148} L${cx+dx-ux*edge},${cy+dy-uy*edge}`} p={p} id={'orbit'+i} tipAt={[cx+dx-ux*edge, cy+dy-uy*edge]} />; })}
     </svg>
     <div style={{...frost('gold'), left: cx - 140, top: cy - 140, width: 280, height: 280, borderRadius: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       opacity: c01(c), transform: `scale(${0.96 + 0.04 * c})`}}>
@@ -240,9 +240,9 @@ export const DecisionFork: React.FC<{R: Record<string, Rect>; q: string; yes: Br
     <div style={{...frost('none'), left: Q.x, top: Q.y, width: Q.w, height: Q.h, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: c01(p0), transform: `scale(${enterScale(p0)})`}}>
       <div style={{...T, fontSize: 56}}>{q}</div></div>
     <svg data-deco style={{position:'absolute',left:0,top:0,width:1920,height:1080,overflow:'visible'}}>
-      <path d={`M${x0},${y0+6} V${(y0+ends[0].y)/2}`} fill="none" stroke="rgba(236,242,250,.94)" strokeWidth={3} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" data-link="fork0" strokeDashoffset={1-Math.min(1,Math.max(fk(0),fk(1))*3)} opacity={Math.max(fk(0),fk(1))}/>
+      <TrailStrokes d={`M${x0},${y0+6} V${(y0+ends[0].y)/2}`} p={Math.min(1,Math.max(fk(0),fk(1))*3)} id="fork0" tip={false} />
       {ends.map((e,j)=>{const full=fk(j),p=Math.max(0,Math.min(1,(full-1/3)/(2/3))),jy=(y0+e.y)/2,dir=j?1:-1,d=`M${x0},${jy} H${e.x-dir*18} Q${e.x},${jy} ${e.x},${jy+18} V${e.y-8}`;
-       return <g key={j} opacity={p}><path d={d} fill="none" stroke="rgba(10,18,32,.20)" strokeWidth={6} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" data-link={'fork'+j} strokeDashoffset={1-p}/><path d={d} fill="none" stroke="rgba(236,242,250,.94)" strokeWidth={3} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" data-link={'fork'+j} strokeDashoffset={1-p}/><circle opacity={p>.98?1:0} cx={e.x} cy={e.y-8} r={3.5} stroke="rgba(91,155,255,.7)" strokeWidth={1.5} style={{fill: 'var(--acc)'}} /></g>;
+       return <g key={j}><TrailStrokes d={d} p={p} id={'fork'+j} tipAt={[e.x, e.y-8]} /></g>;
       })}
       <circle cx={x0} cy={(y0+ends[0].y)/2} r={4} stroke="rgba(91,155,255,.6)" strokeWidth={1.5} opacity={Math.max(fk(0),fk(1))>=1/3?1:0} style={{fill: 'var(--acc)'}} />
     </svg>

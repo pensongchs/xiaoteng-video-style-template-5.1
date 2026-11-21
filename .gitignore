@@ -13,3 +13,7 @@ outputs/
 *.otf
 *.woff
 *.woff2
+
+# 5.1.5 片头 039 背景：按官方固定提交本机下载适配，不随仓库分发
+**/AsciiGradientBackground.jsx
+**/AsciiGradientBackground.css

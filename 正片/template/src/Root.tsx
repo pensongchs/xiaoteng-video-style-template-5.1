@@ -11,6 +11,7 @@ import {MgGallery, GALLERY_FRAMES} from './gallery/MgGallery';
 import {MgGalleryRe10, RE10_FRAMES} from './gallery/MgGalleryRe10';
 import {MgGalleryNew, NEW_GALLERY_FRAMES} from './gallery/MgGalleryNew';
 import {DeliveryHubPreview, DELIVERY_FRAMES} from './gallery/DeliveryHubPreview';
+import {ImageGallery, IMAGE_GALLERY_FRAMES, I_SHOT} from './gallery/ImageGallery';
 import {Preview51, PREVIEW51_FRAMES, SCENE as S51, SubCompare} from './cards51/Preview51';
 export const Root: React.FC = () => (<>
   <Composition id="Cards51Preview" component={Preview51 as any} durationInFrames={PREVIEW51_FRAMES} fps={30} width={1920} height={1080} defaultProps={{}} />
@@ -28,5 +29,7 @@ export const Root: React.FC = () => (<>
   <Composition id="MgGallery" component={MgGallery} durationInFrames={GALLERY_FRAMES} fps={30} width={1920} height={1080} />
   <Composition id="MgGalleryRe10" component={MgGalleryRe10} durationInFrames={RE10_FRAMES} fps={30} width={1920} height={1080} />
   <Composition id="DeliveryHubPreview" component={DeliveryHubPreview} durationInFrames={DELIVERY_FRAMES} fps={30} width={1920} height={1080} />
+  <Composition id="ImageGallery" component={ImageGallery as any} durationInFrames={IMAGE_GALLERY_FRAMES} fps={30} width={1920} height={1080} defaultProps={{}} />
+  <Composition id="ImageScene" component={ImageGallery as any} durationInFrames={I_SHOT} fps={30} width={1920} height={1080} defaultProps={{only: 0}} />
   <Composition id="MgGalleryNew" component={MgGalleryNew} durationInFrames={NEW_GALLERY_FRAMES} fps={30} width={1920} height={1080} />
 </>);

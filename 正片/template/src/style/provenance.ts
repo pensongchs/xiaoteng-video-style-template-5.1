@@ -7,7 +7,7 @@
 import {isPlaceholderText} from './placeholder.ts';
 
 export const PROV = {shortMax: 4, longCover: 0.6};
-const SKIP_KEYS = new Set(['src', 'image', 'img', 'icon', 'tone', 'mark', 'video', 'trim', 'bg', 'palette', 'kind', 'visual', 'cutout', 'poster', 'hookImages', 'color', 'id', 'size', 'x', 'y', 'w', 'h']);
+const SKIP_KEYS = new Set(['src', 'prompt', 'image', 'img', 'icon', 'tone', 'mark', 'video', 'trim', 'bg', 'palette', 'kind', 'visual', 'cutout', 'poster', 'hookImages', 'color', 'id', 'size', 'x', 'y', 'w', 'h']);
 const PUNCT = /[\s·•，。！？；：、,.!?;:…—\-–~|/()（）「」“”"'‘’*＊→←↑↓✓✕▲▼<>《》\[\]【】{}+＋=%％]/g;
 export const normText = (t: string) => t.replace(PUNCT, '');
 const cjk = (t: string) => [...t].filter((c) => /[\u4e00-\u9fff]/.test(c)).length;

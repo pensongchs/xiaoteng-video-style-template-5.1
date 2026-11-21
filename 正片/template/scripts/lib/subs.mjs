@@ -1,4 +1,6 @@
 // 字幕解析与排版（纯 Node，Windows / macOS / Linux 通用）
+// 5.1.5：字幕跟台词节奏走——一句（或一个自然停顿）= 一组，强制单行；只有超出单行上限（SUB_MAX_CHARS）才在停顿/标点处再拆。
+import {SUB_MAX_CHARS} from '../../src/style/subtitle-tokens.ts';
 // 支持：SRT（句级）+ Remotion Caption JSON（[{text,startMs,endMs,timestampMs,confidence}]，逐词/逐字级）
 export const PUNCT = /[，。、；：！？,!?;:…—“”"'‘’（）()《》【】\[\]·~～]/;
 const PUNCT_G = new RegExp(PUNCT.source, 'g');
@@ -20,7 +22,7 @@ export const parseCaptions = (src) => {
 };
 
 /** 只有逐词 JSON 时：按标点 / 停顿 >350ms / 长度 >18 字分句 */
-export const cuesFromWords = (words, maxW = 18) => {
+export const cuesFromWords = (words, maxW = SUB_MAX_CHARS) => {
   const out = []; let cur = null;
   for (const w of words) {
     const gap = cur ? w.startMs - cur.endMs : 0;
@@ -57,10 +59,10 @@ export const charTimes = (cue, words) => {
 };
 
 /**
- * 句 → 显示条：每条 1 行（≤maxW 字），过长时优先按时间拆成多条单行；
- * 没有逐词时间时才用 2 行。返回 [{startMs,endMs,lines:[[{t,s,e}]]}]
+ * 句 → 显示组：一句一组、单行；超过单行上限（maxW 字）才在标点/停顿处拆成多组单行（按时间先后显示）。
+ * 永远不出两行。返回 [{startMs,endMs,lines:[[{t,s,e}]]}]（lines 恒为 1 行）
  */
-export const layoutCue = (cue, words, maxW = 18) => {
+export const layoutCue = (cue, words, maxW = SUB_MAX_CHARS) => {
   const txt = clean(cue.text); const ct = charTimes({...cue, text: txt}, words);
   // 把 clean 后的文本拆成 token（同一个词的字合在一起；空格单独）
   const toks = []; let ci = 0;
@@ -110,9 +112,7 @@ export const layoutCue = (cue, words, maxW = 18) => {
     if (best[L] === Infinity) chunks.push(trim(toks.slice()));
     else { const cuts = []; for (let j = L; j > 0; j = prev[j]) cuts.unshift([prev[j], j]); for (const [i, j] of cuts) chunks.push(trim(toks.slice(i, j))); }
   }
-  const timed = toks.some((x) => x.w >= 0);
   const bounds = (c) => { const tt = c.filter((x) => x.s != null); return [tt[0]?.s ?? cue.startMs, tt[tt.length - 1]?.e ?? cue.endMs]; };
-  if (!timed && chunks.length === 2) return [{startMs: cue.startMs, endMs: cue.endMs, lines: chunks.map(strip)}];
   return chunks.filter((c) => c.length).map((c, k, all) => { const [a] = bounds(c); const b = k < all.length - 1 ? bounds(all[k + 1])[0] : cue.endMs;
     return {startMs: k === 0 ? cue.startMs : a, endMs: b, lines: [strip(c)]}; });
 };

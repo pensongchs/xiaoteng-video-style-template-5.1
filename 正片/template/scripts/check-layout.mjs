@@ -90,10 +90,10 @@ if (!existsSync('public/' + EP.audio)) errs.push(`音频不存在：public/${EP.
   const lastEnd = TL.items.at(-1).from + TL.items.at(-1).d;
   for (const c of EP.cues) { const fr = F(c.startMs); if (fr >= lastEnd) errs.push(`字幕 #${c.i}「${c.text}」超出成片`); }
   if (EP.cues.length && F(EP.cues.at(-1).endMs) > TL.total) errs.push('最后一句字幕在成片结束后才结束'); }
-// 7) 字幕规格：字号 38–46 / 单行 ≤18 字 / 最多 2 行 / 相对画面水平居中 / 位置在底部字幕区
+// 7) 字幕规格：字号 38–46 / 强制单行、每组 ≤ SUB.maxChars 字 / 相对画面水平居中 / 位置在底部字幕区
 if (SUB.size < 38 || SUB.size > 46) errs.push(`字幕字号 ${SUB.size}px 不在 38–46`);
 if (SUB.centerX !== CANVAS.w / 2) errs.push(`字幕 centerX ${SUB.centerX} 不是画面中心 ${CANVAS.w / 2}`);
-for (const c of EP.subs) { if (c.lines.length > 2) errs.push(`字幕「${c.lines.flat().map((t) => t.t).join('')}」超过 2 行`);
+for (const c of EP.subs) { if (c.lines.length > 1) errs.push(`字幕「${c.lines.flat().map((t) => t.t).join('')}」是 ${c.lines.length} 行，5.1.5 起字幕强制单行`);
   for (const l of c.lines) { const t = l.map((x) => x.t).join(''); if (width(t) > SUB.maxChars + 0.01) errs.push(`字幕行「${t}」宽 ${width(t).toFixed(1)} 字 > ${SUB.maxChars}`); } }
 // 8) 素材慢放：素材比镜头短时自动慢放，最慢 0.75×，再短就报错（换更长的素材或调 trim）
 TL.items.forEach((it, i) => { const need = (it.d + (i < TL.items.length - 1 ? 14 : 0)) / 30;

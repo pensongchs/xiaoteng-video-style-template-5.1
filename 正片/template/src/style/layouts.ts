@@ -17,7 +17,9 @@ export type LayoutName =
   | 'pitfallLens' | 'parkingLines' | 'hexSteps' | 'inspectTags' | 'familyPlan'
   | 'policyNotes' | 'qaBubbles'
   // 5.1 小卡动态组合（5 款，src/cards51）：大卡拆成 2–4 张小卡错峰入场后停稳
-  | 'dataCluster' | 'comparePair' | 'stepRail' | 'riskGroup' | 'noteGroup';
+  | 'dataCluster' | 'comparePair' | 'stepRail' | 'riskGroup' | 'noteGroup'
+  // 5.1.5 图片动效组件（4 款，src/images51）：图按口播关键词生成，跟口播节拍切换/揭示
+  | 'imageFrame3D' | 'imageSwap' | 'imageGrid' | 'imageCutout';
 
 /** 5.0 新定版（玻璃v6 + 房产MG）：推荐/预览的唯一机器可读清单。 */
 export const CORE_LAYOUTS = ['titleFloat','bareNumber','splitVs','timeline','mediaRows','ringFeature','waitVs','triadSoft','outroHost'] as const;
@@ -34,7 +36,9 @@ export const RETIRED_REPLACEMENT: Record<string, string> = {quoteStack: 'noteGro
 /** 渲染用的旧新卡全集（含退役），只给 archetypes 的视图表用，不是选卡池。 */
 export const NEW_LAYOUTS_ALL = ['ticketStub','indexTabs','amenityPins','slashCompare','archLight','paymentCup','loanCurve','contractNote','planSplit','buildingSection','pitfallLens','parkingLines','hexSteps','inspectTags','familyPlan','policyNotes','qaBubbles'] as const;
 export const SMALL_LAYOUTS = ['dataCluster','comparePair','stepRail','riskGroup','noteGroup'] as const;
-export const POOL_LAYOUTS: readonly LayoutName[] = [...DEFAULT_LAYOUTS, ...NEW_LAYOUTS, ...SMALL_LAYOUTS];
+/** 5.1.5 图片动效组件：3D 图框视差 / 节拍换图 / 图格揭示 / 抠像分层。一期至少 1/3 镜头以图为主（CARD_CLASS=image），连续纯卡 ≤2 镜。 */
+export const IMAGE_LAYOUTS = ['imageFrame3D', 'imageSwap', 'imageGrid', 'imageCutout'] as const;
+export const POOL_LAYOUTS: readonly LayoutName[] = [...DEFAULT_LAYOUTS, ...NEW_LAYOUTS, ...SMALL_LAYOUTS, ...IMAGE_LAYOUTS];
 /** 5.1.1 卡面分类（每个选卡池版式必须登记）：
  *  image = 大卡里放图（图框/户型图/视频），文字只在小卡、标题条里；viz = 图表/仪表（大面板里是图形，不是整块文字）；
  *  small = 只有小卡（单卡面积 ≤ 12 万 px²）；none = 无卡面（裸数字/标签）；outro = 片尾。
@@ -47,9 +51,12 @@ export const CARD_CLASS: Record<string, CardClass> = {
   floorLadder: 'small', paymentSplit: 'small', amenityOrbit: 'none', priceStep: 'small', decisionFork: 'small', districtTags: 'small', loanDial: 'viz', layerReveal: 'small',
   amenityPins: 'small', paymentCup: 'viz', loanCurve: 'small', planSplit: 'image', pitfallLens: 'small', hexSteps: 'small', inspectTags: 'small', policyNotes: 'small', qaBubbles: 'small',
   dataCluster: 'small', comparePair: 'small', stepRail: 'small', riskGroup: 'small', noteGroup: 'small',
+  imageFrame3D: 'image', imageSwap: 'image', imageGrid: 'image', imageCutout: 'image',
 };
 /** 图框大卡版式：一期里最多用 3 次，其余镜头走小卡。 */
-export const IMAGE_BIG_LAYOUTS: readonly string[] = Object.entries(CARD_CLASS).filter(([k, v]) => v === 'image' && k !== 'titleFloat' && k !== 'bareNumber').map(([k]) => k);
+export const IMAGE_BIG_LAYOUTS: readonly string[] = Object.entries(CARD_CLASS).filter(([k, v]) => v === 'image' && k !== 'titleFloat' && k !== 'bareNumber' && !(IMAGE_LAYOUTS as readonly string[]).includes(k)).map(([k]) => k);
+/** 以图为主的镜头（规划节奏规则用）：CARD_CLASS = image。 */
+export const isImageLed = (name: string) => CARD_CLASS[canonicalLayout(name)] === 'image';
 export const canonicalLayout = (name: string) => name === 'outroAir' ? 'outroHost' : name;
 export const isDefaultLayout = (name: string) => DEFAULT_LAYOUTS.includes(canonicalLayout(name) as LayoutName);
 
@@ -164,6 +171,13 @@ export const layoutRects = (name: LayoutName, n = 3, opt: {character?: boolean; 
     case 'stepRail': return {rail: rect(0, 12, {y: 280, h: 340})};
     case 'riskGroup': return {head: rect(0, 3, {y: 268, h: 320}), list: rect(4, 7, {y: 268, h: 360}), pill: rect(4, 5, {y: 676, h: 72})};
     case 'noteGroup': return {quote: rect(0, 4, {y: 268, h: 240}), connLink: rect(4, 1, {y: 268, h: 420}), notes: rect(5, 6, {y: 256, h: 432})};
+    // 5.1.5 图片组件：图框区 + 说明卡区（几何细节见 images51/specs.ts）
+    case 'imageFrame3D': return {media: rect(0, 12, {y: 276, h: 560})};
+    // 与 images51/specs.ts 实际几何一致：图框占 0–6 栏（96–982），空一栏，说明卡列 8–11 栏（1136 起）
+    case 'imageSwap': return {media: rect(0, 7, {y: 268, h: 600}), captions: rect(8, 4, {y: 268, h: 600})};
+    // 宫格：说明卡挂在各自图下 22px（同连接件，属同一组），按一组计
+    case 'imageGrid': return {media: rect(0, 12, {y: 272, h: 584})};
+    case 'imageCutout': return {media: rect(0, 8, {y: 250, h: 600}), captions: rect(8, 4, {y: 300, h: 500})};
     case 'qaBubbles': return {q: rect(0, 5, {y: ROWS.contentTop + 8, h: 280}), a: rect(6, 6, {y: ROWS.contentTop + 336, h: 280})};
     default:
       return {};

@@ -12,6 +12,8 @@ import {PropertyArt} from './illustrations';
 import {PhotoCutout} from './PhotoCutout';
 import {GlassArrow} from './GlassArrow';
 import {connectionProgress} from './connections';
+import {TrailStrokes} from './LightTrail';
+import {CardOrnament, roleOfTone} from './CardOrnament';
 import {hubAt} from './sequence.ts';
 import {isCirclePoly} from './content-guard.ts';
 
@@ -61,6 +63,7 @@ const CardFace: React.FC<{card: CardGeom; p: number; i: number; yaw: number; sta
     <div style={{position: 'absolute', left: width * 0.1, top: height - 8, width: width * 0.8, height: 34, borderRadius: '50%', pointerEvents: 'none',
       background: 'radial-gradient(ellipse at center, rgba(12,39,57,0.30), rgba(12,39,57,0) 70%)', filter: 'blur(6px)'}} />
     <div style={{position: 'absolute', inset: 0, ...face}}><GlassUnderlay r={{x:left,y:top,w:width,h:height}}/><div style={{position:'absolute',inset:0,...fogStyle(card.tone),borderRadius:'inherit'}}/><GlassEdge radius={circle ? 9999 : 36}/>
+    {(rect || circle) && <CardOrnament p={p} circle={!!circle} radius={rect ? softRadius(width, height) : 36} role={roleOfTone(card.tone)} />}
       {card.id === 'people' && card.marks?.map((m, k) => <Figure key={k} x={m.x - left} y={m.y - top} w={m.w} h={m.h} color={FIG[k % 4]} />)}
     </div>
     {card.id==='doc'&&<svg data-deco style={{position:'absolute',left:36,top:110,width:width*.48,height:height-150}} viewBox="0 0 300 380">
@@ -105,11 +108,8 @@ const Lines: React.FC<{scene:Scene;st:Starts;dur?:number}> = ({scene,st,dur}) =>
    const nf=near(P0,ti),fi:number|'hub'=ln.fromCard?scene.cards.findIndex(c=>c.id===ln.fromCard):ln.beat!=null?Math.max(0,ln.beat-1):nf.dd<=40?nf.k:'hub';
    const aS=fi==='hub'?hubAt(st(0)):st(Math.max(0,fi)),bS=st(Math.max(0,ti));
    const p=ln.kind==='diagram'?glassEnter(f,hubAt(st(0)),'shaped'):connectionProgress(f,aS,bS,{id:ln.id,from:fi,to:Math.max(0,ti),fromKey:fi==='hub'?undefined:`r${Math.max(0,fi)}`,toKey:`r${Math.max(0,ti)}`,dur,pts:ln.pts as [number,number][],fromBox:fi==='hub'?{x:P0[0]-1,y:P0[1]-1,w:2,h:2}:boxes[Math.max(0,fi)],toBox:boxes[Math.max(0,ti)]}),path=ln.d??ln.pts.map((pt,i)=>`${i?'L':'M'}${pt[0]},${pt[1]}`).join(' '),end=ln.pts.at(-1)!,road=ln.width>=12;
-   return <g key={ln.id} opacity={p}>
-    <path d={path} fill="none" stroke="rgba(10,18,32,.20)" strokeWidth={ln.width+3} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1 1" data-link={ln.kind==='diagram'?'diagram':ln.id} strokeDashoffset={1-p}/>
-    <path d={path} fill="none" stroke={road?'#C9D8EA':'rgba(236,242,250,.94)'} strokeWidth={ln.width} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1 1" data-link={ln.kind==='diagram'?'diagram':ln.id} strokeDashoffset={1-p}/>
-    {road&&<path d={path} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={ln.width*.35} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" data-link={ln.kind==='diagram'?'diagram':ln.id} strokeDashoffset={1-p}/>}
-    {ln.dot&&p>.98&&<circle cx={end[0]} cy={end[1]} r={3.5} stroke="rgba(91,155,255,.7)" strokeWidth={1.5} style={{fill: 'var(--acc)'}} />}
+   return <g key={ln.id}>
+    <TrailStrokes d={path} p={p} id={ln.kind==='diagram'?'diagram':ln.id} tip={!!ln.dot || !road} tipAt={end as [number,number]} coreW={road ? Math.max(6, ln.width * 0.55) : undefined} />
    </g>;
   })}
  </svg>;

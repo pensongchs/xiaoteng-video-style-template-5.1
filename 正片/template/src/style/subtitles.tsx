@@ -1,4 +1,4 @@
-// 字幕：底部 180px 字幕安全区内水平居中，单行优先；5.1 墨蓝半透明胶囊 + 冷白字 + 当前词冰蓝（卡拉 OK），无下划线
+// 字幕：底部 180px 字幕安全区内水平居中，强制单行（5.1.5，跟台词节奏一句一组，不自动换行）；5.1 墨蓝半透明胶囊 + 冷白字 + 当前词冰蓝（卡拉 OK），无下划线
 import React from 'react';
 import {useCurrentFrame, interpolate, Easing, getInputProps, delayRender, continueRender} from 'remotion';
 import {FONT} from './tokens';
@@ -39,7 +39,7 @@ export const Subtitles: React.FC<{ep: Episode; opts: SubOpts; tokens?: SUB}> = (
   return <div ref={ref} data-sub="box" style={{position: 'absolute', left: SUB.centerX, bottom: SUB.bottom, transform: `translate(-50%, ${(1 - pIn) * SUB.rise}px)`,
     opacity: pIn * pOut, padding: '10px 28px 12px', borderRadius: 16, background: opts.bare ? 'transparent' : SUB.pill, border: `1px solid ${opts.bare ? 'transparent' : SUB.border}`,
     boxShadow: opts.bare ? 'none' : SUB.shadow, backdropFilter: opts.bare ? 'none' : SUB.blur, whiteSpace: 'nowrap', textAlign: 'center'}}>
-    {c.lines.map((line, li) => <div key={li} data-sub="line" style={{fontFamily: FONT.body, fontWeight: 700, fontSize: SUB.size, lineHeight: 1.32, letterSpacing: 1.5,
+    {[c.lines.flat()].map((line, li) => <div key={li} data-sub="line" style={{whiteSpace: 'nowrap', fontFamily: FONT.body, fontWeight: 700, fontSize: SUB.size, lineHeight: 1.32, letterSpacing: 1.5,
       color: SUB.color, textShadow: opts.bare ? '0 2px 5px #131822, 0 0 12px #131822' : SUB.textShadow}}>
       {line.map((t, k) => {
         if (!hiOn || t.s == null || t.e == null) return <span key={k}>{t.t}</span>;

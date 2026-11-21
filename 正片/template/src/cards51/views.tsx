@@ -1,143 +1,97 @@
-// 5.1 小卡组合 5 款的正式 View。数据驱动；锚点 r0/r1…（说到该项时入场），无锚点按节拍兜底。
-// 语义色固定：主数=navy、风险=clay、决策/结论=tea、重点句=champ、中性=paper。
+// 5.1.5 小卡组合 5 款的正式 View。几何全部来自 specs.ts（与 plan:check 文字适配检查同一份）；锚点 r0/r1…（说到该项时入场），无锚点按节拍兜底。
+// 每张卡：主词/主数 + 最多一行副句；无眉标/标签胶囊/编号圆/装饰图标。语义色：主数=navy、风险=clay、决策/结论=tea、重点句=champ、中性=paper。
 import React from 'react';
-import {Img, staticFile, useCurrentFrame} from 'remotion';
-import {layoutRects} from '../style/layouts.ts';
-import {CARD_TYPE, FONT, glassEnter, toneVars, type FogTone} from '../style/tokens';
+import {useCurrentFrame} from 'remotion';
+import {CARD_TYPE, TRAIL, glassEnter, toneVars} from '../style/tokens';
 import {SEQ, fallbackGap, linkStartAt, linkProgress, settleAt} from '../style/sequence.ts';
+import {TrailStrokes} from '../style/LightTrail';
 import type {Shot} from '../style/types.ts';
-import {estWidth} from '../style/content-guard.ts';
-import {Tile, Pill, Link, Label, Big, Title, Body, Val, Icon} from './SmallCards';
+import {Link, SpecCard} from './SmallCards';
+import {cards51Specs, type CardSpec} from './specs.ts';
 
 type At = (key: string, fb: number) => number;
 type V = React.FC<{s: Shot; dur: number; at: At}>;
-const ROT: FogTone[] = ['champ', 'paper', 'tea', 'navy'];
-/** 小卡文字只走字阶表（tokens.ts CARD_TYPE）；这里只剩不依赖卡档位的几处小件 */
-const NUM: React.CSSProperties = {fontFamily: 'ArialB, Arial', fontWeight: 700, whiteSpace: 'nowrap'};
+const box = (c: CardSpec) => ({x: c.x, y: c.y, w: c.w, h: c.h});
 const hi = (f: number, a: number, b: number) => glassEnter(f, a, 'soft') * (1 - glassEnter(f, b, 'soft'));
+const pick = (cs: CardSpec[], re: RegExp) => cs.filter((c) => re.test(c.key));
+/** 枢纽 → 右列：从源卡右缘中点出发，走折线到目标卡左缘中点。 */
+const hubPts = (a: CardSpec, b: CardSpec): [number, number][] => { const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2, mx = Math.round((x1 + x2) / 2);
+  return [[x1, y1], [mx, y1], [mx, y2], [x2, y2]]; };
 
-/** dataCluster：{hero:{label,v,unit?,sub?}, items:[{k,v,icon?}]×2–3, pill?:{t,icon?}} */
+/** dataCluster：{hero:{v,unit?,sub?}, items:[{k,v}]×2–3, pill?:{t}} */
 const DataCluster: V = ({s, at, dur}) => {
-  const d = s.data, R = layoutRects('dataCluster'), items = (d.items ?? []).slice(0, 3);
-  const n = items.length, gap = 24, h = Math.min(124, (R.items.h - gap * (n - 1)) / n), y0 = R.items.y;
-  // 5.1.2：条卡宽度按内容定（原来撑满 6 栏 756px，内容只占 35%）；各行等宽，取最长内容。
-  const iw = Math.min(R.items.w, Math.max(400, Math.ceil((CARD_TYPE.M.icon + 20 + Math.max(...items.map((it: any) => Math.max(estWidth(String(it.v), CARD_TYPE.M.value), estWidth(String(it.k), CARD_TYPE.M.label))))) / 0.62 / 4) * 4));
-  const heroAt = at('r0', 8), g = fallbackGap(dur, n + 1, 8), hero = {x: R.hero.x, y: R.hero.y, w: R.hero.w, h: R.hero.h};
-  const itemAt = (i: number) => at(`r${i + 1}`, heroAt + g * (i + 1));
+  const cs = cards51Specs('dataCluster', s.data), hero = cs[0], items = pick(cs, /^item/), pill = cs.find((c) => c.key === 'pill');
+  const heroAt = at('r0', 8), g = fallbackGap(dur, items.length + 1, 8), itemAt = (i: number) => at(`r${i + 1}`, heroAt + g * (i + 1));
   return <>
-    <Tile x={R.hero.x} y={R.hero.y} w={R.hero.w} h={R.hero.h} tone="navy" at={heroAt} size="L" from="left">
-      <div data-role="label"><Label>{d.hero.label}</Label></div>
-      <div style={{marginTop: 8}}><Big v={d.hero.v} unit={d.hero.unit} /></div>
-      {d.hero.sub && <div data-role="body"><Body style={{marginTop: 8}}>{d.hero.sub}</Body></div>}
-    </Tile>
-    {items.map((it: any, i: number) => {
-      const st = itemAt(i), cy = y0 + i * (h + gap) + h / 2;
-      return <React.Fragment key={i}>
-        <Link pts={[[R.hero.x + R.hero.w, R.hero.y + R.hero.h / 2], [R.connLink.x + R.connLink.w / 2, R.hero.y + R.hero.h / 2], [R.connLink.x + R.connLink.w / 2, cy], [R.items.x, cy]]} a={heroAt} b={st} dur={dur} id={`hero>item${i}`} from="hub" to={i} fromKey="r0" toKey={`r${i + 1}`} fromBox={hero} toBox={{x: R.items.x, y: y0 + i * (h + gap), w: iw, h}} />
-        <Tile x={R.items.x} y={y0 + i * (h + gap)} w={iw} h={h} tone={(it.tone ?? ROT[i]) as FogTone} at={st} size="M" from="right">
-          <div style={{display: 'flex', alignItems: 'center', gap: 20}}><Icon kind={it.icon ?? 'tag'} />
-            <div><div data-role="label"><Label dot={false}>{it.k}</Label></div><Val>{it.v}</Val></div></div>
-        </Tile></React.Fragment>;
-    })}
-    {d.pill && <Pill x={R.pill.x} y={R.pill.y + 4} tone={d.pill.tone ?? 'clay'} at={Math.max(at('pill', 0), n ? linkStartAt(heroAt, itemAt(n - 1), dur) + SEQ.draw : settleAt(heroAt))} icon={d.pill.icon ?? '!'}>{d.pill.t}</Pill>}
+    <SpecCard c={hero} at={heroAt} />
+    {items.map((c, i) => <React.Fragment key={c.key}>
+      <Link pts={hubPts(hero, c)} a={heroAt} b={itemAt(i)} dur={dur} id={`hero>item${i}`} from="hub" to={i} fromKey="r0" toKey={`r${i + 1}`} fromBox={box(hero)} toBox={box(c)} />
+      <SpecCard c={c} at={itemAt(i)} /></React.Fragment>)}
+    {pill && <SpecCard c={pill} at={Math.max(at('pill', 0), items.length ? linkStartAt(heroAt, itemAt(items.length - 1), dur) + SEQ.draw : settleAt(heroAt))} />}
   </>;
 };
 
-/** comparePair：{L:{name,tag?,img?,rows:[[k,v]]}, R:{…}, verdict:{t,icon?}} */
+/** comparePair：{L:{name,img?,rows:[[k,v]]×≤2}, R:{…}, verdict:{t}} */
 const ComparePair: V = ({s, at, dur}) => {
-  const f = useCurrentFrame(), d = s.data, R = layoutRects('comparePair');
-  const side = (r: any, c: any, tone: FogTone, st: number, from: 'left' | 'right') =>
-    <Tile x={r.x} y={r.y} w={r.w} h={r.h} tone={tone} at={st} size="L" from={from} pad="0">
-      {c.img && <div data-deco style={{position: 'absolute', left: 22, top: 22, width: 120, height: 90, borderRadius: 14, overflow: 'hidden', border: '1px solid var(--edge)'}}>
-        <Img src={staticFile(c.img)} style={{width: '100%', height: '100%', objectFit: 'cover'}} /></div>}
-      <div style={{position: 'absolute', left: c.img ? 170 : 36, top: 26}}>{c.tag && <div data-role="label"><Label>{c.tag}</Label></div>}<Title>{c.name}</Title></div>
-      <div style={{position: 'absolute', left: 24, right: 24, top: 138, display: 'flex', flexDirection: 'column', gap: 12}}>
-        {(c.rows ?? []).slice(0, 3).map(([k, v]: [string, string], i: number) => <div key={i} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 20px', borderRadius: 14,
-          background: 'var(--well)', border: '1px solid var(--line)', opacity: glassEnter(f, st + 10 + i * 5, 'chip')}}>
-          <span data-role="label" style={{fontFamily: FONT.body, fontWeight: 700, fontSize: CARD_TYPE.L.label, lineHeight: CARD_TYPE.L.lh, color: 'var(--sub)'}}>{k}</span><span style={{fontFamily: FONT.body, fontWeight: 700, fontSize: CARD_TYPE.L.caption, lineHeight: CARD_TYPE.L.lh, color: 'var(--acc-hi)'}}>{v}</span></div>)}
-      </div>
-    </Tile>;
+  const f = useCurrentFrame(), cs = cards51Specs('comparePair', s.data);
+  const L = cs.find((c) => c.key === 'L')!, R = cs.find((c) => c.key === 'R')!, verdict = cs.find((c) => c.key === 'verdict');
   const l0 = at('r0', 8), r0 = at('r1', l0 + fallbackGap(dur, 3, 8)), vs = glassEnter(f, linkStartAt(l0, r0, dur), 'chip');
+  const rowAt = (base: number, i: number) => settleAt(base) - 8 + i * 6;
+  const cx = (L.x + L.w + R.x) / 2, cy = L.y + L.h / 2;
   return <>
-    {side(R.L, d.L, d.L.tone ?? 'paper', l0, 'left')}
-    {side(R.R, d.R, d.R.tone ?? 'navy', r0, 'right')}
-    <div style={{position: 'absolute', left: R.connVs.x + R.connVs.w / 2 - 36, top: R.connVs.y, width: 72, height: 72, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      opacity: vs, ...NUM, ...(toneVars('navy') as any), fontSize: CARD_TYPE.S.label, color: 'var(--ink)', background: 'rgba(26,34,52,0.82)', border: '1px solid rgba(214,228,255,0.3)'}}>VS</div>
-    {d.verdict && <div style={{position: 'absolute', left: R.verdict.x, top: R.verdict.y, width: R.verdict.w, height: R.verdict.h, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative'}}><Pill x={0} y={0} tone={d.verdict.tone ?? 'tea'} at={Math.max(at('verdict', 0), linkStartAt(l0, r0, dur) + 12)} icon={d.verdict.icon ?? '→'} inline>{d.verdict.t}</Pill></div></div>}
+    <SpecCard c={L} at={l0} />{pick(cs, /^rowL/).map((c, i) => <SpecCard key={c.key} c={c} at={rowAt(l0, i)} />)}
+    <SpecCard c={R} at={r0} />{pick(cs, /^rowR/).map((c, i) => <SpecCard key={c.key} c={c} at={rowAt(r0, i)} />)}
+    <div style={{position: 'absolute', left: cx - 40, top: cy - 40, width: 80, height: 80, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      opacity: vs, transform: `scale(${0.7 + 0.3 * vs})`, ...(toneVars('navy') as any), fontFamily: 'ArialB, Arial', fontWeight: 700, fontSize: CARD_TYPE.M.caption, color: 'var(--ink)',
+      background: 'radial-gradient(circle at 35% 30%, rgba(91,155,255,0.42), rgba(26,34,52,0.86) 70%)', border: '1px solid rgba(188,214,255,0.45)', boxShadow: '0 0 24px rgba(91,155,255,0.35)'}}>VS</div>
+    {verdict && <SpecCard c={verdict} at={Math.max(at('verdict', 0), linkStartAt(l0, r0, dur) + 12)} />}
   </>;
 };
 
-/** stepRail：{steps:[{k,s,icon?}]×3–4}；当前步只换描边光，不移动。 */
+/** stepRail：{steps:[{k,s}]×3–4}；当前步只换描边光，不移动。 */
 const RailSeg: React.FC<{i: number; x1: number; x2: number; y: number; a: number; b: number; dur: number; fromBox: any; toBox: any}> = ({i, x1, x2, y, a, b, dur, fromBox, toBox}) => {
   const f = useCurrentFrame(); const p = linkProgress(f, a, b, {id: 'rail' + i, from: i, to: i + 1, fromKey: `r${i}`, toKey: `r${i + 1}`, dur, pts: [[x1 + 12, y], [x2 - 12, y]], fromBox, toBox});
-  return <path d={`M${x1 + 12} ${y} L${x2 - 12} ${y}`} pathLength={1} strokeDasharray="1 1" data-link={'rail' + i} strokeDashoffset={1 - p} strokeWidth={2.5} strokeLinecap="round" style={{stroke: 'rgba(200,214,236,0.6)'}} />;
+  return <TrailStrokes d={`M${x1 + 12} ${y} L${x2 - 12} ${y}`} p={p} id={'rail' + i} tipAt={[x2 - 12, y]} />;
 };
 const StepRail: V = ({s, at, dur}) => {
-  const f = useCurrentFrame(), steps = (s.data.steps ?? []).slice(0, 4), R = layoutRects('stepRail').rail, n = steps.length;
-  const gap = 40, w = Math.min(340, (R.w - gap * (n - 1)) / n), span = n * w + (n - 1) * gap, x0 = R.x + (R.w - span) / 2, h = 124;
-  const midY = R.y + R.h / 2, X = (i: number) => x0 + i * (w + gap), Y = (i: number) => i % 2 ? midY + 16 : midY - 16 - h;
+  const f = useCurrentFrame(), cs = cards51Specs('stepRail', s.data), n = cs.length;
+  const midY = cs.length > 1 ? (cs[0].y + cs[0].h + cs[1].y) / 2 : 450;
   const g = fallbackGap(dur, n, 12), st = (i: number) => at(`r${i}`, 12 + i * g), lead = glassEnter(f, st(0), 'soft');
   const act = (i: number) => hi(f, settleAt(st(i)), i < n - 1 ? settleAt(st(i + 1)) : dur + 99);
-  const cxOf = (i: number) => X(i) + w / 2;
+  const cxOf = (i: number) => cs[i].x + cs[i].w / 2;
   return <>
     <svg data-deco style={{position: 'absolute', inset: 0, width: 1920, height: 1080, overflow: 'visible'}}>
-      {/* 轨道只在第一步入场时露出起点，其余逐段：第 i 段在第 i、i+1 步都停稳后从左向右长出 */}
-      <path d={`M${R.x} ${midY} L${cxOf(0)} ${midY}`} pathLength={1} strokeDasharray="1 1" data-link="lead" strokeDashoffset={1 - lead} strokeWidth={2} style={{stroke: 'rgba(200,214,236,0.5)'}} />
-      {steps.slice(0, -1).map((_: any, i: number) => <RailSeg key={'seg' + i} i={i} x1={cxOf(i)} x2={cxOf(i + 1)} y={midY} a={st(i)} b={st(i + 1)} dur={dur}
-        fromBox={{x: X(i), y: Y(i), w, h}} toBox={{x: X(i + 1), y: Y(i + 1), w, h}} />)}
-      {steps.map((_: any, i: number) => <circle key={i} cx={cxOf(i)} cy={midY} r={9} strokeWidth={2} opacity={glassEnter(f, st(i), 'chip')} style={{fill: f >= settleAt(st(i)) ? '#5B9BFF' : 'rgba(200,214,236,0.6)', stroke: 'rgba(255,255,255,0.6)'}} />)}
+      <TrailStrokes d={`M${cs[0].x - 60} ${midY} L${cxOf(0)} ${midY}`} p={lead} id="lead" tip={false} />
+      {cs.slice(0, -1).map((c, i) => <RailSeg key={'seg' + i} i={i} x1={cxOf(i)} x2={cxOf(i + 1)} y={midY} a={st(i)} b={st(i + 1)} dur={dur} fromBox={box(c)} toBox={box(cs[i + 1])} />)}
+      {cs.map((c, i) => <g key={i} opacity={glassEnter(f, st(i), 'chip')}>
+        <line x1={cxOf(i)} x2={cxOf(i)} y1={midY} y2={i % 2 ? c.y : c.y + c.h} strokeWidth={1.5} style={{stroke: TRAIL.mid}} />
+        <circle cx={cxOf(i)} cy={midY} r={9} strokeWidth={2} style={{fill: f >= settleAt(st(i)) ? TRAIL.tip : TRAIL.mid, stroke: TRAIL.core}} /></g>)}
     </svg>
-    {steps.map((it: any, i: number) => <Tile key={i} x={X(i)} y={Y(i)} w={w} h={h} tone={(it.tone ?? ['paper', 'navy', 'champ', 'tea'][i]) as FogTone} at={st(i)} size="M" from={i % 2 ? 'down' : 'up'} pad="0 22px" active={act(i)}>
-      <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
-        <div style={{...NUM, fontSize: CARD_TYPE.M.label, color: 'var(--acc-hi)', width: 40}}>{String(i + 1).padStart(2, '0')}</div>
-        <div><Title>{it.k}</Title>{it.s && <div data-role="label"><Label dot={false}>{it.s}</Label></div>}</div>
-        {it.icon !== false && <div style={{marginLeft: 'auto'}}><Icon kind={it.icon ?? 'search'} /></div>}</div>
-    </Tile>)}
+    {cs.map((c, i) => <SpecCard key={c.key} c={c} at={st(i)} active={act(i)} />)}
   </>;
 };
 
 /** riskGroup：{head:{t,n,unit?}, items:[[k,v]]×2–3, pill?:{t}} */
 const RiskGroup: V = ({s, at, dur}) => {
-  const d = s.data, R = layoutRects('riskGroup'), items = (d.items ?? []).slice(0, 3), h0 = at('r0', 8), g = fallbackGap(dur, items.length + 1, 8);
-  const itemAt = (i: number) => at(`r${i + 1}`, h0 + g * (i + 1));
-  const rowH = 92, gap = (R.list.h - items.length * rowH) / Math.max(1, items.length - 1);
+  const cs = cards51Specs('riskGroup', s.data), head = cs[0], items = pick(cs, /^item/), pill = cs.find((c) => c.key === 'pill');
+  const h0 = at('r0', 8), g = fallbackGap(dur, items.length + 1, 8), itemAt = (i: number) => at(`r${i + 1}`, h0 + g * (i + 1));
   return <>
-    <Tile x={R.head.x} y={R.head.y} w={R.head.w} h={R.head.h} tone="clay" at={h0} size="L" from="left">
-      <div data-deco style={{width: 64, height: 56}}><svg viewBox="0 0 64 56" style={{width: 64, height: 56}}><path d="M32 4 L60 52 L4 52 Z" strokeWidth={4} strokeLinejoin="round" style={{fill: 'color-mix(in srgb, var(--acc-raw) 22%, transparent)', stroke: 'var(--acc-hi)'}} /><path d="M32 22 V36 M32 43 V45" strokeWidth={5} strokeLinecap="round" style={{stroke: 'var(--acc-hi)'}} /></svg></div>
-      <Title style={{marginTop: 12}}>{d.head.t}</Title>
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4}}><Big v={d.head.n} /><span data-role="label" style={{fontFamily: FONT.body, fontWeight: 700, fontSize: CARD_TYPE.L.label, color: 'var(--faint)'}}>{d.head.unit ?? '个坑'}</span></div>
-    </Tile>
-    {items.map(([k, v]: [string, string], i: number) => <Tile key={i} x={R.list.x + i * 36} y={R.list.y + i * (rowH + gap)} w={R.list.w - 72} h={rowH} tone={i === items.length - 1 ? 'clay' : 'paper'} at={itemAt(i)} size="S" from="right">
-      <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
-        <span style={{width: 34, height: 34, borderRadius: 999, background: 'color-mix(in srgb, var(--c-coral) 85%, transparent)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ...NUM, fontSize: CARD_TYPE.S.label, color: 'var(--ink)'}}>{i + 1}</span>
-        <Title>{k}</Title>
-        <span data-role="label" style={{marginLeft: 'auto'}}><Label dot={false}>{v}</Label></span></div>
-    </Tile>)}
-    {d.pill && <Pill x={R.pill.x} y={R.pill.y + 4} tone={d.pill.tone ?? 'tea'} at={Math.max(at('pill', 0), settleAt(items.length ? itemAt(items.length - 1) : h0))} icon={d.pill.icon ?? '✓'}>{d.pill.t}</Pill>}
+    <SpecCard c={head} at={h0} />
+    {items.map((c, i) => <SpecCard key={c.key} c={c} at={itemAt(i)} />)}
+    {pill && <SpecCard c={pill} at={Math.max(at('pill', 0), settleAt(items.length ? itemAt(items.length - 1) : h0))} />}
   </>;
 };
 
-/** noteGroup：{quote:{label?,t,s?}, notes:[[k,v]]×2–3} */
+/** noteGroup：{quote:{t,s?}, notes:[[k,v]]×2–3} */
 const NoteGroup: V = ({s, at, dur}) => {
-  const d = s.data, R = layoutRects('noteGroup'), notes = (d.notes ?? []).slice(0, 3), q0 = at('r0', 8), g = fallbackGap(dur, notes.length + 1, 8);
-  const nh = 110, ng = (R.notes.h - notes.length * nh) / Math.max(1, notes.length - 1), cx = R.connLink.x + R.connLink.w / 2;
-  // 5.1.2：便签宽度按内容定（原来撑满 686px，内容只占 38–44%）；各条等宽，取最长内容。
-  const nw = Math.min(R.notes.w - 70, Math.ceil((CARD_TYPE.S.padX * 2 + Math.max(...notes.map(([k, v]: [string, string]) => estWidth(k, CARD_TYPE.S.title) + 16 + estWidth(v, CARD_TYPE.S.label)))) / 0.65 / 4) * 4);
+  const cs = cards51Specs('noteGroup', s.data), q = cs[0], notes = pick(cs, /^note/);
+  const q0 = at('r0', 8), g = fallbackGap(dur, notes.length + 1, 8);
   return <>
-    <Tile x={R.quote.x} y={R.quote.y} w={R.quote.w} h={R.quote.h} tone="champ" at={q0} size="L" from="left">
-      {d.quote.label && <div data-role="label"><Label>{d.quote.label}</Label></div>}
-      <Title style={{marginTop: 12}}>{d.quote.t}</Title>
-      {d.quote.s && <div data-role="body"><Body style={{marginTop: 8}}>{d.quote.s}</Body></div>}
-    </Tile>
-    {notes.map(([k, v]: [string, string], i: number) => {
-      const y = R.notes.y + i * (nh + ng), x = R.notes.x + (i % 2) * 70, st = at(`r${i + 1}`, q0 + g * (i + 1));
-      return <React.Fragment key={i}>
-        <Link pts={[[R.quote.x + R.quote.w, R.quote.y + R.quote.h / 2], [cx, R.quote.y + R.quote.h / 2], [cx, y + nh / 2], [x, y + nh / 2]]} a={q0} b={st} dur={dur} id={`quote>note${i}`} from="hub" to={i} fromKey="r0" toKey={`r${i + 1}`} fromBox={{x: R.quote.x, y: R.quote.y, w: R.quote.w, h: R.quote.h}} toBox={{x, y, w: nw, h: nh}} />
-        <Tile x={x} y={y} w={nw} h={nh} tone={(['paper', 'navy', 'tea'][i]) as FogTone} at={st} size="S" from="right">
-          <div style={{display: 'flex', alignItems: 'baseline', gap: 16}}><Title>{k}</Title><span data-role="label"><Label dot={false}>{v}</Label></span></div>
-        </Tile></React.Fragment>;
-    })}
+    <SpecCard c={q} at={q0} />
+    {notes.map((c, i) => { const st = at(`r${i + 1}`, q0 + g * (i + 1));
+      return <React.Fragment key={c.key}>
+        <Link pts={hubPts(q, c)} a={q0} b={st} dur={dur} id={`quote>note${i}`} from="hub" to={i} fromKey="r0" toKey={`r${i + 1}`} fromBox={box(q)} toBox={box(c)} />
+        <SpecCard c={c} at={st} /></React.Fragment>; })}
   </>;
 };
 

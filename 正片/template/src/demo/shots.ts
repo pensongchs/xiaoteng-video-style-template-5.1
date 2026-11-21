@@ -81,7 +81,7 @@ export const SHOTS:Shot[]=[
   },
   {
     "id": "S03",
-    "layout": "riskGroup",
+    "layout": "imageSwap",
     "title": "签约先看{这三处}",
     "bg": {
       "src": "media/gen/west_sun.jpg",
@@ -89,37 +89,35 @@ export const SHOTS:Shot[]=[
       "blur": 0
     },
     "data": {
-      "head": {
-        "t": "签约先看",
-        "n": "03"
-      },
-      "items": [
-        [
-          "交房日期",
-          "写明逾期违约"
-        ],
-        [
-          "违约责任",
-          "逐条看清"
-        ],
-        [
-          "贷款条款",
-          "利率与期限"
-        ]
-      ],
-      "pill": {
-        "t": "逐条核对再签"
-      }
+      "images": [
+        {
+          "src": "media/gen/img515/交房日期.jpg",
+          "kw": "交房日期",
+          "prompt": "交房日期：新房交房现场递钥匙，中国住宅语境，中性日光，真实摄影质感，冷静偏蓝自然色，无文字、无logo、无水印",
+          "cap": "交房日期"
+        },
+        {
+          "src": "media/gen/img515/违约责任.jpg",
+          "kw": "违约责任",
+          "prompt": "违约责任：购房合同与钢笔特写，中国住宅语境，中性日光，真实摄影质感，冷静偏蓝自然色，无文字、无logo、无水印",
+          "cap": "违约责任"
+        },
+        {
+          "src": "media/gen/img515/贷款条款.jpg",
+          "kw": "贷款条款",
+          "prompt": "贷款条款：房贷文件、计算器与住宅模型，中国住宅语境，中性日光，真实摄影质感，冷静偏蓝自然色，无文字、无logo、无水印",
+          "cap": "贷款条款"
+        }
+      ]
     },
     "at": {
       "ms": 10000
     },
     "anchors": {
       "entry": 3,
-      "r0": "签约先看三处",
-      "r1": "交房日期",
-      "r2": "违约责任",
-      "r3": "贷款条款"
+      "r0": "交房日期",
+      "r1": "违约责任",
+      "r2": "贷款条款"
     }
   },
   {
@@ -203,15 +201,14 @@ export const SHOTS:Shot[]=[
   },
   {
     "id": "S06",
-    "layout": "policyNotes",
+    "layout": "imageFrame3D",
     "at": {
       "ms": 25000
     },
     "anchors": {
       "entry": 6,
       "r0": "选东户",
-      "r1": "选西户",
-      "r2": "东西两个字"
+      "r1": "选西户"
     },
     "title": "光看{东西}不够",
     "bg": {
@@ -220,20 +217,22 @@ export const SHOTS:Shot[]=[
       "blur": 0
     },
     "data": {
-      "sceneText": {
-        "note0": [
-          "选东户",
-          "上午有太阳"
-        ],
-        "note1": [
-          "选西户",
-          "冬天下午暖和"
-        ],
-        "note2": [
-          "东西两个字",
-          "根本定不了"
-        ]
-      }
+      "frames": [
+        {
+          "src": "media/gen/img515/东户上午.jpg",
+          "kw": "上午有太阳",
+          "prompt": "上午有太阳：东向卧室清晨阳光斜射进窗，中国住宅语境，中性日光，真实摄影质感，冷静偏蓝自然色，无文字、无logo、无水印",
+          "cap": "东户",
+          "sub": "上午有太阳"
+        },
+        {
+          "src": "media/gen/west_sun.jpg",
+          "kw": "下午暖和",
+          "prompt": "下午暖和：西向客厅午后暖阳，中国住宅语境，中性日光，真实摄影质感，冷静偏蓝自然色，无文字、无logo、无水印",
+          "cap": "西户",
+          "sub": "冬天下午暖和"
+        }
+      ]
     }
   },
   {
@@ -247,7 +246,6 @@ export const SHOTS:Shot[]=[
     },
     "data": {
       "hero": {
-        "label": "冬至日照 · 约五小时",
         "v": "5.0",
         "unit": "小时",
         "sub": "朝南户型参考"
@@ -255,18 +253,15 @@ export const SHOTS:Shot[]=[
       "items": [
         {
           "k": "朝南优先",
-          "v": "晒得足",
-          "icon": "sun"
+          "v": "晒得足"
         },
         {
           "k": "西晒遮阳",
-          "v": "夏天热",
-          "icon": "building"
+          "v": "夏天热"
         },
         {
           "k": "楼距靠前",
-          "v": "看遮挡",
-          "icon": "search"
+          "v": "看遮挡"
         }
       ],
       "pill": {
@@ -327,7 +322,7 @@ export const SHOTS:Shot[]=[
   },
   {
     "id": "S09",
-    "layout": "inspectTags",
+    "layout": "imageGrid",
     "title": "收房先看{这四处}",
     "bg": {
       "src": "media/gen/main_road.jpg",
@@ -335,24 +330,32 @@ export const SHOTS:Shot[]=[
       "blur": 0
     },
     "data": {
-      "sceneText": {
-        "tag0": [
-          "窗边",
-          "看水渍"
-        ],
-        "tag1": [
-          "墙角",
-          "看空鼓"
-        ],
-        "tag2": [
-          "地漏",
-          "放水试"
-        ],
-        "tag3": [
-          "插座",
-          "逐个试"
-        ]
-      }
+      "cells": [
+        {
+          "src": "media/gen/img515/窗边.jpg",
+          "kw": "窗边",
+          "prompt": "窗边：铝合金窗框与窗台打胶缝特写，中国住宅语境，中性日光，真实摄影质感，冷静偏蓝自然色，无文字、无logo、无水印",
+          "cap": "窗边"
+        },
+        {
+          "src": "media/gen/img515/墙角.jpg",
+          "kw": "墙角",
+          "prompt": "墙角：室内墙面阴角与踢脚线的潮湿水渍，中国住宅语境，中性日光，真实摄影质感，冷静偏蓝自然色，无文字、无logo、无水印",
+          "cap": "墙角"
+        },
+        {
+          "src": "media/gen/img515/地漏.jpg",
+          "kw": "地漏",
+          "prompt": "地漏：卫生间地漏与地面坡度，中国住宅语境，中性日光，真实摄影质感，冷静偏蓝自然色，无文字、无logo、无水印",
+          "cap": "地漏"
+        },
+        {
+          "src": "media/gen/img515/插座.jpg",
+          "kw": "插座",
+          "prompt": "插座：86型五孔插座与验电器，中国住宅语境，中性日光，真实摄影质感，冷静偏蓝自然色，无文字、无logo、无水印",
+          "cap": "插座"
+        }
+      ]
     },
     "at": {
       "ms": 40000

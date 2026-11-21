@@ -34,7 +34,7 @@ function walk(dir, acc = []) {
     if (st.isDirectory()) {
       if (name === 'node_modules' || name === 'out') continue;
       walk(p, acc);
-    } else if (['.ts', '.tsx', '.css'].includes(extname(name))) acc.push(p);
+    } else if (['.ts', '.tsx', '.css'].includes(extname(name)) && !/^AsciiGradientBackground\./.test(name)) acc.push(p); // 039 背景为本机下载的第三方源码，不计入
   }
   return acc;
 }
@@ -62,7 +62,7 @@ const write = process.argv.includes('--write-allowlist');
 const current = collect();
 if (write) {
   writeFileSync(lockPath, JSON.stringify({
-    revision: '5.1.3-2026-11-20',
+    revision: '5.1.4-2026-11-20',
     note: '令牌文件之外的现存颜色冻结。新增颜色必须改用 tokens.ts / CSS 变量，不得手写。禁止把暖金、暖白、土黄、棕粉填回正片卡片和字幕。',
     files: current,
   }, null, 2) + '\n');

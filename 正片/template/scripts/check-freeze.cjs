@@ -41,6 +41,7 @@ const {GALLERY, ARCHIVE_GALLERY} = load('src/gallery/shots-mg-gallery.ts');
 const {NEW_GALLERY} = load('src/gallery/shots-mg-new.ts');
 const {RE10} = load('src/gallery/shots-mg-re10.ts');
 const {SHOTS51} = load('src/cards51/Preview51.tsx');
+const {IMAGE_GALLERY} = load('src/gallery/shots-image.ts');
 const {ShotView} = load('src/style/archetypes.tsx');
 const {frost} = load('src/style/mgEstate.tsx');
 assert.equal(token.FROST, token.GLASS_V6);
@@ -107,11 +108,11 @@ const stable=[];
 assert.equal(NEW_GALLERY.length, 9);
 assert.deepEqual(NEW_GALLERY.map(s=>s.layout), [...layouts.NEW_LAYOUTS]);
 assert.deepEqual(SHOTS51.map(s=>s.layout), [...layouts.SMALL_LAYOUTS]);
-for (const s of [...GALLERY,...ARCHIVE_GALLERY,...NEW_GALLERY,...SHOTS51]) {
+for (const s of [...GALLERY,...ARCHIVE_GALLERY,...NEW_GALLERY,...SHOTS51,...IMAGE_GALLERY]) {
   const ref=JSON.stringify(sample(s,185));
   for(let f=186;f<209;f++) assert.equal(JSON.stringify(sample(s,f)),ref,s.layout+' card/ancestor moved after settling at '+f);
   stable.push({layout:s.layout, glassElements:JSON.parse(ref).length, stableFrames:[185,208]});
 }
-const report={version:'5.1.1-cards-readability',smallLayouts:layouts.SMALL_LAYOUTS,palette:token.PALETTE.id,status:'validated',timezone:'Asia/Shanghai',testedAt:new Date().toLocaleString('sv-SE',{timeZone:'Asia/Shanghai'}),defaultCount:26,defaultLayouts:layouts.DEFAULT_LAYOUTS,estateLayouts:layouts.ESTATE_LAYOUTS,archiveLayouts:layouts.ARCHIVE_LAYOUTS,estateCount:9,archiveCount:6,unitCompareDefault:false,material:'GLASS_V6 = FROST; GLASS.dark/light and glassMat/frost/LG same source',baseAlpha:[0.64,0.76],entryFrames:token.GLASS_ENTER_FRAMES,overshoot:false,scanbar:false,settledGeometry:stable,scope:'TS/React-tree parameter regression; actual rendered stills checked separately, not a DOM pixel measurement'};
+const report={version:'5.1.1-cards-readability',smallLayouts:layouts.SMALL_LAYOUTS,palette:token.PALETTE.id,status:'validated',timezone:'Asia/Shanghai',testedAt:new Date().toLocaleString('sv-SE',{timeZone:'Asia/Shanghai'}),defaultCount:26,defaultLayouts:layouts.DEFAULT_LAYOUTS,estateLayouts:layouts.ESTATE_LAYOUTS,archiveLayouts:layouts.ARCHIVE_LAYOUTS,estateCount:9,archiveCount:6,unitCompareDefault:false,material:'GLASS_V6 = FROST; GLASS.dark/light and glassMat/frost/LG same source',baseAlpha:[0.64,0.76],entryFrames:token.GLASS_ENTER_FRAMES,overshoot:'transform-only（5.1.5 motion.ts：位移/缩放轻过冲 ≤6%，20 帧精确落位；不透明度单调）',imageLayouts:layouts.IMAGE_LAYOUTS,scanbar:false,settledGeometry:stable,scope:'TS/React-tree parameter regression; actual rendered stills checked separately, not a DOM pixel measurement'};
 const dest=path.join(root,'检查');fs.mkdirSync(dest,{recursive:true});fs.writeFileSync(path.join(dest,'freeze-regression.json'),JSON.stringify(report,null,2)+'\n');
-console.log(`PASS: frosted glass, contextual typography and connected card geometry; monotonic 16/18/20/12f; 24 default + 6 archive + 9 new + 5 small-card groups settled (5.1.1: text-only big cards retired); palette inkBlue; 8 estate kept; unitCompare excluded`);
+console.log(`PASS: frosted glass, contextual typography and connected card geometry; monotonic 16/18/20/12f; 24 default + 6 archive + 9 new + 5 small-card groups + 4 image components settled (5.1.1: text-only big cards retired); palette inkBlue; 8 estate kept; unitCompare excluded`);

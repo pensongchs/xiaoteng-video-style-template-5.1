@@ -25,6 +25,8 @@ if(!existsSync(numeral)){
  if(!src)throw Error('缺少Arial Bold数字字体，请提供本机合法字体路径XT_ARIAL_BOLD，不自动替换');
  mkdirSync(dirname(numeral),{recursive:true});copyFileSync(src,numeral);
 }
+// 5.1.5 片头 039 ASCII 背景：官方固定提交下载 + 本机适配（不随仓库分发）
+await new Promise((ok,no)=>{const r=require('node:child_process').spawnSync(process.execPath,[join(root,'scripts/fetch-ascii-bg.cjs')],{stdio:'inherit'});r.status?no(Error('039 背景准备失败')):ok();});
 const renderer=require('@remotion/renderer');let browser=process.env.REMOTION_BROWSER_EXECUTABLE;
 if(!browser){const b=await renderer.ensureBrowser({chromeMode:'headless-shell'});browser=b.path;}
 if(!existsSync(browser))throw Error('渲染浏览器不可用');mkdirSync(join(root,'.runtime'),{recursive:true});writeFileSync(join(root,'.runtime/browser.json'),JSON.stringify({path:browser},null,2));

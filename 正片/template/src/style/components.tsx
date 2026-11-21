@@ -6,6 +6,8 @@ import {PhotoCutout} from './PhotoCutout';
 import {GlassArrow} from './GlassArrow';
 import {connectionProgress} from './connections';
 import {COLOR, FONT, FROST, GLASS, glassEnter, steadySpring as spring, MIN_FONT, FOG, fogFill, type FogTone, MOTION, RADIUS, SPRING, TYPE, toneVars, ROOT_VARS, HILITE} from './tokens';
+import {LightTrail} from './LightTrail';
+import {CardOrnament} from './CardOrnament';
 
 /** 5.1 科技玻璃入口：tone 决定底色渐变、文字变量与一条语义色顶描边。旧 tint/rgba 调用按色相映射到 tone。 */
 export const toneOf = (tint?: string): FogTone => {
@@ -92,13 +94,15 @@ const enterStyle = (from: Enter, p: number): React.CSSProperties => {
   const o = Math.min(1, Math.max(0, p));
   const t = o; // 禁止过冲
   const sh = MOTION.maxShift;
+  const persp = (move: string, yaw = 0, pitch = 0) =>
+    ({opacity: o, transform: `perspective(1800px) ${move} rotateY(${(1 - t) * yaw}deg) rotateX(${(1 - t) * pitch}deg) translateZ(${(1 - t) * -36}px)`});
   switch (from) {
-    case 'up': return {opacity: o, transform: `translateY(${(1 - t) * sh}px) scale(${0.96 + 0.04 * Math.min(t, 1.15)})`};
-    case 'left': return {opacity: o, transform: `translateX(${(1 - t) * -sh}px) scale(${0.97 + 0.03 * Math.min(t, 1.12)})`};
-    case 'right': return {opacity: o, transform: `translateX(${(1 - t) * sh}px) scale(${0.97 + 0.03 * Math.min(t, 1.12)})`};
-    case 'scale': return {opacity: o, transform: `scale(${0.97 + 0.03 * t})`};
-    case 'blur': return {opacity: o, filter: `blur(${Math.max(0, (1 - Math.min(t, 1)) * 8)}px)`, transform: `translateY(${(1 - t) * 16}px) scale(${0.97 + 0.03 * Math.min(t, 1.1)})`};
-    case 'fade': return {opacity: o, transform: `scale(${0.985 + 0.015 * Math.min(t, 1.08)})`};
+    case 'up': return persp(`translateY(${(1 - t) * sh}px) scale(${0.96 + 0.04 * t})`, 0, 5);
+    case 'left': return persp(`translateX(${(1 - t) * -sh}px) scale(${0.97 + 0.03 * t})`, -6, 1.2);
+    case 'right': return persp(`translateX(${(1 - t) * sh}px) scale(${0.97 + 0.03 * t})`, 6, 1.2);
+    case 'scale': return persp(`scale(${0.94 + 0.06 * t})`, 0, 3);
+    case 'blur': return {opacity: o, filter: `blur(${Math.max(0, (1 - t) * 8)}px)`, transform: `perspective(1800px) translateY(${(1 - t) * 16}px) translateZ(${(1 - t) * -24}px) scale(${0.97 + 0.03 * t})`};
+    case 'fade': return persp(`scale(${0.985 + 0.015 * t})`, 0, 1);
     default: return {opacity: 1};
   }
 };
@@ -113,8 +117,8 @@ const toneBg: Record<Tone, React.CSSProperties> = {
 export const GlassCard: React.FC<{r: Rect; start: number; tone?: Tone; from?: Enter; dim?: number; radius?: number; pad?: number | string; children: React.ReactNode; style?: React.CSSProperties}> =
 ({r, start, tone = 'dark', from = 'up', dim = 1, radius = RADIUS.card, pad = 36, children, style}) => {
   const p = useSpringP(start, SPRING.enter);
-  return <div style={{position: 'absolute', left: r.x, top: r.y, width: r.w, height: r.h, borderRadius: radius, padding: pad, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
-    opacity: dim, ...toneBg[tone], ...enterStyle(from, p), ...style}}>{children}</div>;
+  return <div style={{position: 'absolute', left: r.x, top: r.y, width: r.w, height: r.h, borderRadius: radius, padding: pad, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+    opacity: dim, ...toneBg[tone], ...enterStyle(from, p), ...style}}><CardOrnament p={p} radius={typeof radius === 'number' ? radius : 36} role={tone === 'coral' ? 'risk' : tone === 'gold' ? 'key' : 'neutral'} />{children}</div>;
 };
 
 /** 真实帧上下文：镜头末尾定格时，前景冻结，但视频（背景/媒体框）继续播放，避免「顿一下」 */
@@ -285,7 +289,7 @@ export const Timeline: React.FC<{r: Rect; start: number; steps: {t: string; s: s
   const cw = (r.w - gap * (n - 1)) / n;
   return <div style={{position: 'absolute', left: r.x, top: r.y, width: r.w, height: r.h}}>
     {steps.slice(0,-1).map((_,i)=>{const x1=i*(cw+gap)+cw/2,x2=(i+1)*(cw+gap)+cw/2;const p=connectionProgress(f,starts?.[i]??start+i*MOTION.stagger,starts?.[i+1]??start+(i+1)*MOTION.stagger,{id:'tl'+i,from:i,to:i+1,fromKey:'s'+i,toKey:'s'+(i+1),dur,pts:[[r.x+x1+18,r.y+36],[r.x+x2-18,r.y+36]],fromBox:{x:r.x+i*(cw+gap),y:r.y,w:cw,h:r.h},toBox:{x:r.x+(i+1)*(cw+gap),y:r.y,w:cw,h:r.h}});
-      return <svg data-deco key={'link'+i} style={{position:'absolute',left:0,top:0,width:r.w,height:70,overflow:'visible'}}><path d={`M${x1+18} 36 H${x2-18}`} fill="none" stroke="rgba(236,242,250,.94)" strokeWidth="3" strokeLinecap="round" pathLength="1" strokeDasharray="1 1" data-link={'tl'+i} strokeDashoffset={1-p} opacity={p}/></svg>;
+      return <LightTrail key={'link'+i} d={`M${x1+18} 36 H${x2-18}`} p={p} id={'tl'+i} x={0} y={0} w={r.w} h={70} tipAt={[x2-18, 36]} />;
     })}
     {steps.map((st, i) => {
       const st0 = starts?.[i] ?? start + i * MOTION.stagger;

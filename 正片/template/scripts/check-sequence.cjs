@@ -54,6 +54,7 @@ const {GALLERY, ARCHIVE_GALLERY} = load('src/gallery/shots-mg-gallery.ts');
 const {NEW_GALLERY} = load('src/gallery/shots-mg-new.ts');
 const {RE10} = load('src/gallery/shots-mg-re10.ts');
 const {SHOTS51} = load('src/cards51/Preview51.tsx');
+const {IMAGE_GALLERY} = load('src/gallery/shots-image.ts');
 const {SEQUENTIAL_LAYOUTS, FALLBACK_MIN_GAP, LINKED_LAYOUTS, LINK_MODE, requiredSeqKeys} = load('src/style/sequence-spec.ts');
 const {sceneOf, isNewLayout} = (() => { const m = load('src/style/scenes.ts'); return {sceneOf: m.sceneOf, isNewLayout: l => { try { return !!m.sceneOf(l); } catch { return false; } }}; })();
 const specKeys = s => requiredSeqKeys(s.layout, s.data ?? {}, isNewLayout(s.layout) ? sceneOf(s.layout, s.data).cards.length : 0);
@@ -132,7 +133,7 @@ function checkShot(ctx, s, dur, anchors, opts = {}) {
 }
 
 // A. 全部登记版式：无锚点（兜底）、短镜、以及按口播锚点三种情况
-const all = [...GALLERY, ...ARCHIVE_GALLERY, ...NEW_GALLERY, ...RE10, ...SHOTS51];
+const all = [...GALLERY, ...ARCHIVE_GALLERY, ...NEW_GALLERY, ...RE10, ...SHOTS51, ...IMAGE_GALLERY];
 for (const s of all) {
   checkShot(`样例/${s.layout}`, s, 210);
   { const n = Math.max(0, ...probe(s, 210)[2].items.map(x => x.idx + 1)); const need = LINK_MODE[s.layout] === 'chain' ? 12 + (n - 1) * seq.LINK_GAP + SEQ.draw + 6 : 120; checkShot(`样例/${s.layout}@短镜120f`, s, Math.max(120, need)); }

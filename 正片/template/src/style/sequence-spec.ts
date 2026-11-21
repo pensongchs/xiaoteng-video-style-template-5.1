@@ -3,7 +3,7 @@
  *  缺任一项、或两项锚点顺序颠倒，npm run verify 直接失败。 */
 export const SEQUENTIAL_LAYOUTS = new Set<string>([
   'timeline', 'stepRail', 'hexSteps', 'indexTabs', 'floorLadder', 'priceStep', 'paymentSplit', 'decisionFork',
-  'dataCluster', 'noteGroup', 'riskGroup', 'pitfallBoard', 'mediaRows', 'quoteStack', 'triadSoft', 'formulaCalc',
+  'dataCluster', 'noteGroup', 'riskGroup', 'imageFrame3D', 'imageSwap', 'imageGrid', 'imageCutout', 'pitfallBoard', 'mediaRows', 'quoteStack', 'triadSoft', 'formulaCalc',
 ]);
 /** 无锚点兜底时流程项之间的最小间隔（帧）——低于它看起来就是「一起出现」 */
 export const FALLBACK_MIN_GAP = 12;
@@ -28,6 +28,10 @@ export const requiredSeqKeys = (layout: string, data: any = {}, sceneCards = 0):
     case 'dataCluster': return keys('r', 1 + Math.min(3, len(data.items)));
     case 'riskGroup': return keys('r', 1 + Math.min(3, len(data.items)));
     case 'noteGroup': return keys('r', 1 + Math.min(3, len(data.notes)));
+    case 'imageFrame3D': return keys('r', Math.min(2, len(data.frames)));
+    case 'imageSwap': return keys('r', Math.min(4, len(data.images)));
+    case 'imageGrid': return keys('r', Math.min(4, len(data.cells)));
+    case 'imageCutout': return keys('r', 1 + Math.min(2, len(data.chips)));
     default: return [];
   }
 };

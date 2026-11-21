@@ -147,21 +147,37 @@ export const GLASS = {
 /** 5.1 标题/字幕强调色（替代原暖金）：冰银蓝。深底用浅冰蓝，亮底用沉稳钴蓝。不发光、不霓虹。 */
 export const HILITE = {dark: '#BCD6FF', bright: '#1F56C4'}; // bright 仅作历史令牌保留；5.1.1 起正片文字一律用 dark（冰蓝），不再有深色字
 
-/** 5.1.1 小卡统一字阶（px @1920×1080）。小卡按「卡高」分三档，由 Tile 的 size 属性下发；
- *  卡内标题 / 数值 / 标签 / 说明只能取本表字号，内边距、行高、图标、圆角同表。禁止在小卡里手写其他字号。 */
+/** 5.1.4 小卡统一字阶（px @1920×1080）。按卡高分 S/M/L，由 Tile 的 size 下发。
+ *  标题/数值/标签/说明只能取本表；字与玻璃更贴合（略收边距、略抬标题），保持可读（标签/说明 ≥28，行高 ≥1.25）。禁止手写其他字号。 */
 export const CARD_SIZE = {S: {maxH: 116}, M: {maxH: 200}, L: {maxH: 380}} as const;
 export type CardSize = keyof typeof CARD_SIZE;
 export const CARD_TYPE: Record<CardSize, {title: number; value: number; label: number; caption: number; padX: number; padY: number; gap: number; lh: number; icon: number; radius: number}> = {
-  S: {title: 36, value: 44, label: 28, caption: 28, padX: 24, padY: 14, gap: 10, lh: 1.3, icon: 52, radius: 20},
-  M: {title: 40, value: 56, label: 28, caption: 32, padX: 28, padY: 20, gap: 12, lh: 1.3, icon: 60, radius: 24},
-  L: {title: 48, value: 120, label: 30, caption: 34, padX: 36, padY: 30, gap: 14, lh: 1.25, icon: 72, radius: 28},
+  S: {title: 38, value: 48, label: 28, caption: 28, padX: 20, padY: 12, gap: 6, lh: 1.28, icon: 44, radius: 18},
+  M: {title: 44, value: 68, label: 28, caption: 30, padX: 24, padY: 16, gap: 8, lh: 1.28, icon: 52, radius: 22},
+  L: {title: 54, value: 112, label: 30, caption: 34, padX: 30, padY: 22, gap: 10, lh: 1.25, icon: 64, radius: 26},
 };
 /** 字阶里所有允许的字号（DOM 检查：小卡内文字 font-size 必须落在所属档位的取值里）。 */
 export const CARD_TYPE_SIZES = (s: CardSize) => [...new Set(Object.values(CARD_TYPE[s]).slice(0, 4))];
 /** 禁止出现在卡面/正文上的「近黑」文字色：相对亮度 < 0.18 视为近黑。检查脚本据此扫源码与 DOM。 */
 export const NEAR_BLACK_L = 0.18;
 
-/** 5.1.1 图表字阶（px @1920×1080）：数值标签 / 重点数值 / 类目标签 / 刻度 / 单位。图表一律放在深色玻璃面板（data-viz）内，直接标数值。 */
-export const CHART_TYPE = {value: 76, valueKey: 96, label: 38, tick: 28, unit: 34, rowValue: 52, rowValueKey: 64};
+/** 5.1.4 图表字阶（px @1920×1080）：数值标签 / 重点数值 / 类目标签 / 刻度 / 单位。图表一律放在深色玻璃面板（data-viz）内，直接标数值。 */
+export const CHART_TYPE = {value: 80, valueKey: 104, label: 40, tick: 28, unit: 34, rowValue: 56, rowValueKey: 72};
 /** 图表配色（深色面板上）：普通柱/点用中性冰灰，重点用冰蓝 HILITE。 */
 export const CHART_INK = {bar: 'rgba(196,212,236,0.62)', barTop: 'rgba(236,242,250,0.9)', axis: 'rgba(236,242,250,0.78)', grid: 'rgba(236,242,250,0.14)', key: '#BCD6FF', keyDeep: '#6FA2F5', line: '#8DB8FF'};
+
+/** 5.1.4 卡片连线：冰蓝/银芯 + 柔光bloom 的光影线，略粗于旧白线，但不是霓虹管。颜色只在本令牌定义。 */
+export const TRAIL = {
+  coreW: 4.5, glowW: 13, bloomW: 26,
+  core: 'rgba(236,244,255,0.96)', mid: 'rgba(157,196,255,0.62)', bloom: 'rgba(91,155,255,0.28)',
+  tip: '#9CC2FF', tipRing: 'rgba(156,194,255,0.85)',
+};
+/** 5.1.4 分层入场：玻璃 → 饰线 → 图标 → 标题 → 说明，相对卡入场起点的帧延迟。全部单调 0→1，禁止先降后升。 */
+export const LAYER = {glass: 0, ornament: 3, icon: 5, title: 7, sub: 10} as const;
+export type LayerName = keyof typeof LAYER;
+export const layerEnter = (frame: number, start: number, layer: LayerName, kind: GlassEnterKind = 'chip') =>
+  glassEnter(frame, start + LAYER[layer], kind);
+/** 5.1.5 饰线（同心内光缝）色：左上亮 → 右下几乎透明；光弧 = 冰蓝高亮。mask 用纯白/纯黑只作遮罩，不上屏。 */
+export const SEAM = {hi: 'rgba(236,244,255,0.58)', mid: 'rgba(214,228,255,0.16)', lo: 'rgba(214,228,255,0.04)', tail: 'rgba(157,196,255,0.20)', arc: '#BCD6FF', glow: '#5B9BFF', maskOn: '#fff', maskOff: '#000'};
+/** 5.1.5 图片组件图框：深底、细冰边、景深投影、底部压暗渐变（保护说明卡可读）。 */
+export const IMG_FRAME = {bg: '#0c1220', edge: 'rgba(214,228,255,.22)', shadow: 'rgba(4,10,22,.55)', cutShadow: 'rgba(4,10,22,.5)', fade0: 'rgba(8,14,28,0)', fade1: 'rgba(8,14,28,.42)', capFade: 'rgba(14,20,34,0.55)'};
