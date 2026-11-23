@@ -72,7 +72,7 @@ if (write) {
 
 const errs = [];
 // 锁定出片令牌
-if (SUB.size !== 40 || SUB.color !== '#F5F8FC' || SUB.hi !== '#9CC4FF' || SUB.dim !== 0.86 || SUB.bottom !== 44) {
+if (SUB.size !== 36 || SUB.centerX !== 864 || SUB.color !== '#F5F8FC' || SUB.hi !== '#9CC4FF' || SUB.dim !== 0.86 || SUB.bottom !== 44) {
   errs.push(`字幕令牌偏离 5.1 v2：size=${SUB.size} color=${SUB.color} hi=${SUB.hi} dim=${SUB.dim} bottom=${SUB.bottom}`);
 }
 if (!String(SUB.pill).includes('rgba(20,30,50,0.68)') || !String(SUB.pill).includes('rgba(12,20,36,0.74)')) {

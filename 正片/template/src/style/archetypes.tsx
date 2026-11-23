@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, Freeze, Img, staticFile, useCurrentFrame, useVideoConfig, getInputProps} from 'remotion';
 import {GlassSceneCtx, ReadabilityCtx, TextVeil, bump,
-  ArrowConnector, Backdrop, BareNumber, CamCtx, Chip, ExampleMark, FloatLabel, GoldText, Headline, HighlightBar,
+  ArrowConnector, Backdrop, BackgroundFrameCtx, BareNumber, CamCtx, Chip, ExampleMark, FloatLabel, GoldText, Headline, HighlightBar,
   IconRow, Kicker, MediaFrame, ProgressRing, QuoteBlock, SoftCallout, SplitType, StatPill, Timeline, UnderlineDraw, prog, glassMat,
   LiveFrameCtx,
 } from './components';
@@ -11,7 +11,7 @@ import {IMAGE_VIEWS} from '../images51/ImageViews';
 import {GRID, splitRows, type Rect} from './grid.ts';
 import {COLOR, FONT, MOTION, SPRING, TYPE, FROST, glassEnter, steadySpring as spring} from './tokens';
 import type {Shot, TimelineWindow} from './types';
-import {entranceAt} from '../sync/timeline.ts';
+import {entranceAt, type TimedVisual} from '../sync/timeline.ts';
 import {SEQ, LINK_GAP, SEQ_KEY, recordSeqItem, normalizeSeqAnchors, actIndex} from './sequence.ts';
 import {LINK_MODE, FALLBACK_MIN_GAP} from './sequence-spec.ts';
 import {DomCheck} from './domcheck';
@@ -63,7 +63,7 @@ const TitleFloat: React.FC<{s: Shot}> = ({s}) => {
  return <>
   {hook&&<AbsoluteFill data-deco style={{pointerEvents:'none',background:'linear-gradient(90deg,rgba(12,20,30,.54),rgba(12,20,30,.18) 40%,transparent 64%)'}}/>}
   <div style={{position:'absolute',left:R.title.x,top:R.title.y,display:'flex',gap:20}}>{d.chips?.map((c:any,i:number)=><Chip key={i} start={at(`chip${i}`,l1+4+i*14)} tone={c.tone}>{c.t}</Chip>)}</div>
-  <SplitType r={titleBody} start={l1} line1={d.line1} line2={d.line2} line2Start={l2} sub={d.sub} rhythm={hook?{focus:'几十套'}:undefined}/>
+  <SplitType r={titleBody} start={-MOTION.enter} line1={d.line1} line2={d.line2} line2Start={l2} sub={d.sub} rhythm={hook?{focus:'几十套'}:undefined}/>
   {hook?<div data-hook-photo style={{position:'absolute',left:M.x,top:M.y,width:M.w,height:M.h,borderRadius:24,overflow:'hidden',background:'#F2F5F8',border:'1px solid rgba(255,255,255,.84)',boxSizing:'border-box',boxShadow:`0 22px 36px -18px rgba(14,26,40,.36),0 0 24px ${tp>.5?'rgba(255,107,94,.12)':'rgba(91,155,255,.10)'}`}}>
    {swaps.map((st,i)=>{const next=swaps[i+1]??1e6,p=prog(f,st,6),fade=1-prog(f,next,6);if(f<st||fade<=0)return null;return <Img key={i} data-deco src={staticFile(d.hookImages[types[i]])} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:p*fade,transform:`translateX(${24*(1-p)-18*(1-fade)}px) scale(${1+.018*prog(f,st,next-st)})`,transformOrigin:'50% 50%'}}/>;})}
   </div>:<MediaFrame r={M} start={at('media',34)} {...d.media} from="right" soft/>}
@@ -326,30 +326,33 @@ const camFor = (layout: string): {dirX: number; dirY: number; zoom: number} => {
   return {dirX: 0.4, dirY: -0.15, zoom: 1};
 };
 
-export const ShotView: React.FC<{s: Shot; dur: number; exampleData?: boolean; anchors?: Record<string, number>}> = ({s, dur, exampleData, anchors: rawAnchors = {}}) => {
+export const ShotView: React.FC<{s: Shot; dur: number; exampleData?: boolean; anchors?: Record<string, number>; visuals?: readonly TimedVisual[]}> = ({s, dur, exampleData, anchors: rawAnchors = {}, visuals = []}) => {
   const f = useCurrentFrame();
   const anchors = normalizeSeqAnchors(rawAnchors, LINK_MODE[s.layout]);
   const View = VIEWS[s.layout];
   const kt = kickerText(s);
-  const bg = bgWithLuma(s.bg);
+  const imageFrame = Math.min(f, dur - 1);
+  const visual = visuals.filter((cut) => cut.frame <= imageFrame).at(-1);
+  const bg = bgWithLuma(visual?.media ?? s.bg);
+  const backgroundFrame = visual ? imageFrame - visual.frame : null;
   const treat = textTreatment(bg.luma ?? estimateLuma(bg.dark), bg.p90 ?? bg.luma ?? estimateLuma(bg.dark));
   const fx = (s as any).fx as number | undefined; // 可选：本期加强运镜 + 口播节拍动效
   const cam = {...camFor(s.layout), move: fx ?? 1};
   // v6：所有 MG 前景到位即停，背景自然运镜保留（含旧版式与 fx 路径）。
   const fgTX = 0, fgTY = 0, fgScale = 1;
-  const body = <GlassSceneCtx.Provider value={{bg,cam}}><ReadabilityCtx.Provider value={{bright:(bg.luma ?? .45)>.48}}><AbsoluteFill style={{'--glass-lift':(bg.luma ?? .45)<.3?.35:0, color: COLOR.pearlInk} as React.CSSProperties}>
+  const body = <BackgroundFrameCtx.Provider value={backgroundFrame}><GlassSceneCtx.Provider value={{bg,cam}}><ReadabilityCtx.Provider value={{bright:(bg.luma ?? .45)>.48}}><AbsoluteFill style={{'--glass-lift':(bg.luma ?? .45)<.3?.35:0, color: COLOR.pearlInk} as React.CSSProperties}>
     <CamCtx.Provider value={cam}>
       <Backdrop src={bg.src} video={bg.video} blur={bg.blur} dark={bg.dark} trimStart={bg.trim} neutral={!!s.data.hookRhythm} />
     </CamCtx.Provider>
-    <AbsoluteFill style={{transform: `translate(${fgTX}px, ${fgTY}px) scale(${fgScale})`, transformOrigin: '50% 45%'}}>
+    {visual?.mode !== 'footage' && <AbsoluteFill style={{transform: `translate(${fgTX}px, ${fgTY}px) scale(${fgScale})`, transformOrigin: '50% 45%'}}>
       {/* 5.1.5 去杂：栏目眉标与「数据为示例」默认不显示（小Lin说式单层级）；确需时 shot.showKicker / shot.exampleMark = true */}
       {kt && (s as any).showKicker === true && <Kicker text={kt} plate={treat === 'bar'} />}
       {exampleData && (s as any).exampleMark === true && <ExampleMark />}
-      {usesTitle(s.layout) && s.title && <Headline text={s.title} start={entranceAt(anchors.title, 2)} plate={treat === 'bar'} />}
+      {usesTitle(s.layout) && s.title && <Headline text={s.title} immediate plate={treat === 'bar'} />}
       {View ? <SpatialMotion duration={dur}><View s={s} dur={dur} /></SpatialMotion> : null}
       {fx ? <Beats s={s} /> : null}
-    </AbsoluteFill>
-  </AbsoluteFill></ReadabilityCtx.Provider></GlassSceneCtx.Provider>;
+    </AbsoluteFill>}
+  </AbsoluteFill></ReadabilityCtx.Provider></GlassSceneCtx.Provider></BackgroundFrameCtx.Provider>;
   // 音画同步：不再提前 1 秒定格（会和口播错位），只在退场转场期间冻结前景
   const freezeAt = dur - 1;
   const check = !!(getInputProps() as any)?.check && f >= freezeAt;

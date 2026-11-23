@@ -6,14 +6,15 @@
 import {readFileSync, mkdirSync, rmSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {CANVAS, SAFE, GRID, ROWS, MG_GAP} from '../src/style/grid.ts';
+import {SAFE, GRID, ROWS, MG_GAP} from '../src/style/grid.ts';
 import {layoutRects, titleRect, usesTitle} from '../src/style/layouts.ts';
 import {TYPE, MIN_FONT} from '../src/style/tokens.ts';
 import {SHOTS} from '../src/demo/shots.ts';
 import {buildTimeline, F, TAIL} from '../src/sync/timeline.ts';
-import {SUB} from '../src/style/subtitle-tokens.ts';
+import {SUB, SUB_TEXT_MAX_PX, subTextPx} from '../src/style/subtitle-tokens.ts';
+import {openingConfig} from '../src/opening/openingConfig.ts';
+import {durationMsOf} from '../src/opening/openingBeats.ts';
 import {ensureEpisode} from './episode.mjs';
-import {width} from './lib/subs.mjs';
 import {existsSync} from 'node:fs';
 import {constraintErrors} from './check-constraints.mjs';
 import {measuredLuma} from '../src/style/measured-luma.ts';
@@ -48,10 +49,19 @@ for (const s of SHOTS) {
 const seen = new Map(); const walk = (o, id) => { if (!o || typeof o !== 'object') return;
   for (const [k, v] of Object.entries(o)) { if ((k === 'src' || k === 'character') && typeof v === 'string') { const key=o.video?`${v}@${o.trim??0}`:v; if (seen.has(key)) errs.push(`素材复用 ${key}: ${seen.get(key)} 与 ${id}`); else seen.set(key, id); } else walk(v, id); } };
 const installSample=JSON.parse(readFileSync('src/demo/episode.json','utf8')).previewOnly===true;
-if(!installSample)for(const s of SHOTS)walk(s,s.id);
+if (!installSample) for (const {visuals = [], ...s} of SHOTS) {
+  walk(s, s.id);
+  const used = new Set([s.bg.src + '@' + (s.bg.trim ?? 0)]);
+  for (const {mode, media} of visuals) {
+    const key = media.src + '@' + (media.trim ?? 0);
+    if (mode === 'layout' && used.has(key)) continue;
+    walk(media, s.id);
+    used.add(key);
+  }
+}
 // 2a) 背景亮度：文件在本地时必须有 ffmpeg 实测的 luma，渲染走同一份
-for (const s of SHOTS) {
-  const src = s.bg?.src;
+for (const s of SHOTS) for (const bg of [s.bg, ...(s.visuals ?? []).map(({media}) => media)]) {
+  const src = bg?.src;
   if (!src || !existsSync('public/' + src)) continue;
   const row = measuredLuma(src);
   if (!row) errs.push(`${s.id}: 背景 ${src} 还没有实测亮度，先 npm run luma`);
@@ -90,11 +100,12 @@ if (!existsSync('public/' + EP.audio)) errs.push(`音频不存在：public/${EP.
   const lastEnd = TL.items.at(-1).from + TL.items.at(-1).d;
   for (const c of EP.cues) { const fr = F(c.startMs); if (fr >= lastEnd) errs.push(`字幕 #${c.i}「${c.text}」超出成片`); }
   if (EP.cues.length && F(EP.cues.at(-1).endMs) > TL.total) errs.push('最后一句字幕在成片结束后才结束'); }
-// 7) 字幕规格：字号 38–46 / 强制单行、每组 ≤ SUB.maxChars 字 / 相对画面水平居中 / 位置在底部字幕区
-if (SUB.size < 38 || SUB.size > 46) errs.push(`字幕字号 ${SUB.size}px 不在 38–46`);
-if (SUB.centerX !== CANVAS.w / 2) errs.push(`字幕 centerX ${SUB.centerX} 不是画面中心 ${CANVAS.w / 2}`);
-for (const c of EP.subs) { if (c.lines.length > 1) errs.push(`字幕「${c.lines.flat().map((t) => t.t).join('')}」是 ${c.lines.length} 行，5.1.5 起字幕强制单行`);
-  for (const l of c.lines) { const t = l.map((x) => x.t).join(''); if (width(t) > SUB.maxChars + 0.01) errs.push(`字幕行「${t}」宽 ${width(t).toFixed(1)} 字 > ${SUB.maxChars}`); } }
+// 7) 字幕规格：36px / 单行 / 对齐 MG 内容区中心 / 底部字幕区
+if (SUB.size !== 36) errs.push(`字幕字号 ${SUB.size}px，要求 36px`);
+if (SUB.centerX !== (SAFE.left + SAFE.right) / 2) errs.push(`字幕 centerX ${SUB.centerX} 没有对齐 MG 内容区中心`);
+const visibleSubs = openingConfig.enabled ? EP.subs.filter((c) => c.startMs >= openingConfig.vo.endMs) : EP.subs;
+for (const c of visibleSubs) { if (c.lines.length > 1) errs.push(`字幕「${c.lines.flat().map((t) => t.t).join('')}」是 ${c.lines.length} 行，5.1.5 起字幕强制单行`);
+  for (const l of c.lines) { const t = l.map((x) => x.t).join(''); if (subTextPx(t) > SUB_TEXT_MAX_PX) errs.push(`字幕行「${t}」超过 ${SUB_TEXT_MAX_PX}px`); } }
 // 8) 素材慢放：素材比镜头短时自动慢放，最慢 0.75×，再短就报错（换更长的素材或调 trim）
 TL.items.forEach((it, i) => { const need = (it.d + (i < TL.items.length - 1 ? 14 : 0)) / 30;
   const chk = (m) => { if (!m?.video) return; const ms = EP.clips[m.src]; if (!ms) return; const r = (ms / 1000 - (m.trim ?? 0) - 0.1) / need;
@@ -120,18 +131,26 @@ if (process.argv.includes('--dom')) {
     console.log(`  ${s.id} DOM ${got.length ? '✗ ' + got.length : '✓'}`);
   }
   // 字幕 DOM：抽 8 句，在句中点出图并检查位置 / 字号 / 溢出
-  const picks = [...new Set(Array.from({length: 8}, (_, k) => Math.round((k * (EP.subs.length - 1)) / 7)))];
-  for (const k of picks) { const c = EP.subs[k]; const fr = F((c.startMs + c.endMs) / 2); let got = null;
+  const subs = visibleSubs;
+  if (openingConfig.enabled) {
+    const frame = F(durationMsOf(openingConfig)) - 1;
+    let got = null;
+    await renderStill({serveUrl, composition, inputProps, frame, output: 'out/stills/opening-end.png', browserExecutable: B,
+      onBrowserLog: (l) => { if (l.text.startsWith(`SUBCHECK|${frame}|`)) got = l.text.split('|').at(-1); }});
+    if (got !== 'null') errs.push('片头末帧应隐藏字幕');
+  }
+  const picks = subs.length ? [...new Set(Array.from({length: 8}, (_, k) => Math.round((k * (subs.length - 1)) / 7)))] : [];
+  for (const k of picks) { const c = subs[k]; const fr = F((c.startMs + c.endMs) / 2); let got = null;
     await renderStill({serveUrl, composition, inputProps, frame: fr, output: `out/stills/sub_${String(k + 1).padStart(2, '0')}.png`, browserExecutable: B,
       onBrowserLog: (l) => { const m = l.text.match(new RegExp(`SUBCHECK\\|${fr}\\|(.*)`)); if (m) got = m[1] === 'null' ? 'null' : JSON.parse(m[1]); }});
     const tag = `字幕 #${k + 1}@${fr}`;
     if (!got || got === 'null') { errs.push(`${tag}: 应显示但没渲染出来`); continue; }
     if (got.x < SAFE.left || got.x + got.w > SAFE.right) errs.push(`${tag}: 横向超出内容区 ${Math.round(got.x)}–${Math.round(got.x + got.w)}`);
     const cx = got.x + got.w / 2;
-    if (Math.abs(cx - CANVAS.w / 2) > 2) errs.push(`${tag}: 字幕中心 ${cx.toFixed(1)} 未对齐画面中心 ${CANVAS.w / 2}`);
-    if (Array.isArray(got.ink)) got.ink.forEach((c, i) => { if (Math.abs(c - CANVAS.w / 2) > 4) errs.push(`${tag}: 第 ${i + 1} 行文字中心 ${c} 未对齐画面中心 ${CANVAS.w / 2}`); });
+    if (Math.abs(cx - SUB.centerX) > 2) errs.push(`${tag}: 字幕中心 ${cx.toFixed(1)} 未对齐 MG 内容区中心 ${SUB.centerX}`);
+    if (Array.isArray(got.ink)) got.ink.forEach((c, i) => { if (Math.abs(c - SUB.centerX) > 4) errs.push(`${tag}: 第 ${i + 1} 行文字中心 ${c} 未对齐 MG 内容区中心 ${SUB.centerX}`); });
     if (got.y < SAFE.subtitleTop || got.y + got.h > 1080) errs.push(`${tag}: 纵向超出字幕区 ${Math.round(got.y)}–${Math.round(got.y + got.h)}`);
-    if (got.fs < 38 || got.fs > 46) errs.push(`${tag}: 字号 ${got.fs}`);
+    if (got.fs !== SUB.size) errs.push(`${tag}: 字号 ${got.fs}`);
     if (got.over) errs.push(`${tag}: 行内溢出`);
     console.log(`  字幕 #${k + 1} ✓ 中心 ${Math.round(cx)}，y ${Math.round(got.y)}–${Math.round(got.y + got.h)}，宽 ${Math.round(got.w)}`); }
 }

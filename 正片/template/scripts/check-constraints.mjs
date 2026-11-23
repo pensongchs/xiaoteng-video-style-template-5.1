@@ -26,7 +26,7 @@ if (POOL_LAYOUTS.length !== 42) errs.push(`选卡池 ${POOL_LAYOUTS.length} ≠ 
 for (const name of SMALL_LAYOUTS) if (DEFAULT_LAYOUTS.includes(name) || NEW_LAYOUTS.includes(name)) errs.push(`${name} 不应替换已有版式`);
 for (const name of NEW_LAYOUTS) if (DEFAULT_LAYOUTS.includes(name)) errs.push(`${name} 不应替换默认 26`);
 
-if (SUB.size !== 40 || SUB.color !== '#F5F8FC' || SUB.hi !== '#9CC4FF' || SUB.bottom !== 44) {
+if (SUB.size !== 36 || SUB.centerX !== 864 || SUB.color !== '#F5F8FC' || SUB.hi !== '#9CC4FF' || SUB.bottom !== 44) {
   errs.push(`字幕定版被改动 ${JSON.stringify({size: SUB.size, color: SUB.color, hi: SUB.hi, bottom: SUB.bottom})}`);
 }
 

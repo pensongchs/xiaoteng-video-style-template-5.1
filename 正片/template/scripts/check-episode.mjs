@@ -12,7 +12,7 @@ const plan=JSON.parse(readFileSync(resolve(file),'utf8')),shots=Array.isArray(pl
 if(!Array.isArray(shots)||!shots.length)throw Error('shots必须为实际镜头数组');
 const errors=diversityFaults(shots);
 if(shots.length!==SHOTS.length)errors.push('计划与实际SHOTS镜数不一致');
-shots.forEach((s,i)=>{for(const k of ['id','layout','anchors','data'])if(!isDeepStrictEqual(s[k],SHOTS[i]?.[k]))errors.push(`镜${i+1}:计划与实际SHOTS的${k}不一致`);});
+shots.forEach((s,i)=>{for(const k of ['id','layout','anchors','data','visuals'])if(!isDeepStrictEqual(s[k],SHOTS[i]?.[k]))errors.push(`镜${i+1}:计划与实际SHOTS的${k}不一致`);});
 for(const [i,s] of shots.entries()){
  if(NEEDS_EVIDENCE.has(s.layout)&&(!s.evidence?.source||!['真实','口播假设'].includes(s.evidence?.kind)))errors.push(`镜${i+1}: ${s.layout} 缺数据来源与口径（真实/口播假设）`);
  if(s.evidence?.kind==='口播假设'&&!s.evidence?.label)errors.push(`镜${i+1}:假设缺屏显说明`);

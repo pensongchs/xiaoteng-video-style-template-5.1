@@ -1,13 +1,14 @@
 import React from 'react';
 import {Opening} from '../opening/Opening';
 import {openingConfig} from '../opening/openingConfig';
+import {durationMsOf} from '../opening/openingBeats';
 import {AbsoluteFill, Sequence, Audio, staticFile, getInputProps, useCurrentFrame} from 'remotion';
 import {Fonts, ClipRateCtx} from '../style/components';
 import {ShotView} from '../style/archetypes';
 import {Transition, TRANSITIONS} from '../style/transitions';
 import {Subtitles, type SubOpts} from '../style/subtitles';
 import {COLOR} from '../style/tokens';
-import {buildTimeline, type Episode} from '../sync/timeline.ts';
+import {buildTimeline, F, type Episode} from '../sync/timeline.ts';
 import {SHOTS, SUBTITLE} from './shots.ts';
 import EP from './episode.json';
 export const EPISODE = EP as unknown as Episode;
@@ -30,26 +31,28 @@ export const Demo: React.FC = () => {
   const frame = useCurrentFrame();
   const sfxSrc=(openingConfig as typeof openingConfig&{sfxSrc?:string}).sfxSrc;
   const items = TIMELINE.items;
+  const openingFrames = openingConfig.enabled ? F(durationMsOf(openingConfig)) : 0;
   const opts: SubOpts = {
     show: ip.subs ?? SUBTITLE.show,
     highlight: ip.highlight ?? SUBTITLE.highlight,
+    opening: openingConfig.enabled ? {endFrame: openingFrames, endMs: openingConfig.vo.endMs} : undefined,
     bare: items.some(({s, from, d}) => s.bareSubtitles && frame >= from && frame < from + d),
   };
   return <AbsoluteFill style={{background: COLOR.ink}}>
     <Fonts />
-    {items.map(({s, d, from, i, anchors}) => {
+    {items.map(({s, d, from, i, anchors, visuals}) => {
       const inT = i > 0 ? TRANSITIONS[(i - 1) % TRANSITIONS.length] : null;
       const outT = i < items.length - 1 ? TRANSITIONS[i % TRANSITIONS.length] : null;
       const len = d + (outT ? outT.dur : 0);
       return <Sequence key={s.id} from={from} durationInFrames={len} premountFor={30}>
         <ClipRateCtx.Provider value={rates(s, len)}>
-          <Transition d={d} inT={inT} outT={outT} z={i}>
-            <ShotView s={s} dur={d} anchors={anchors} exampleData={(s as any).example !== false && !String(s.layout).startsWith('outro')} />
+          <Transition d={d} inT={inT} outT={outT} z={i} readableStart={!(EPISODE as Episode & {previewOnly?: boolean}).previewOnly}>
+            <ShotView s={s} dur={d} anchors={anchors} visuals={visuals} exampleData={(s as any).example !== false && !String(s.layout).startsWith('outro')} />
           </Transition>
         </ClipRateCtx.Provider>
       </Sequence>;
     })}
-    {openingConfig.enabled&&<Sequence from={0} durationInFrames={Math.round(openingConfig.durationInFrames/openingConfig.fps*30)}><Opening/></Sequence>}
+    {openingFrames > 0 && <Sequence from={0} durationInFrames={openingFrames}><Opening /></Sequence>}
     <AbsoluteFill style={{zIndex: 100, pointerEvents: 'none'}}><Subtitles ep={EPISODE} opts={opts} /></AbsoluteFill>
     {!ip.check&&sfxSrc&&<Audio src={staticFile(sfxSrc)}/>}
     {!ip.check && !(EPISODE as any).previewOnly && <Audio src={staticFile(EPISODE.audio)} />}

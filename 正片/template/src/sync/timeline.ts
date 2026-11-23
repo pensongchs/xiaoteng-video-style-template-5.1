@@ -1,5 +1,5 @@
 // 音画同步：把字幕时间码换算成每镜起止帧与动效锚点（纯函数，Remotion 与 check 脚本共用）
-import type {Shot} from '../style/types.ts';
+import type {Shot, VisualCue} from '../style/types.ts';
 export const FPS = 30;
 /** 毫秒 → 帧：F(ms) = ceil(ms × 30 / 1000) */
 export const F = (ms: number) => Math.ceil((ms * FPS) / 1000);
@@ -13,7 +13,8 @@ export type Cue = {i: number; startMs: number; endMs: number; text: string; cs: 
 export type SubTok = {t: string; s: number | null; e: number | null};
 export type Episode = {name: string; audio: string; audioMs: number; hasWords: boolean; cues: Cue[];
   subs: {startMs: number; endMs: number; lines: SubTok[][]}[]; clips: Record<string, number>};
-export type Item = {s: Shot; i: number; from: number; d: number; startMs: number; anchors: Record<string, number>; cueRange: [number, number]};
+export type TimedVisual = VisualCue & {frame: number};
+export type Item = {s: Shot; i: number; from: number; d: number; startMs: number; anchors: Record<string, number>; visuals: TimedVisual[]; cueRange: [number, number]};
 
 const norm = (t: string) => t.replace(/\s/g, '');
 /** 在 [fromMs, toMs) 内找某个词第一次被说出的时刻 */
@@ -93,8 +94,19 @@ export const buildTimeline = (shots: Shot[], ep: Episode) => {
         });
       }
     }
+    let visualMs = starts[i] - 1;
+    const visuals: TimedVisual[] = [];
+    for (const visual of s.visuals ?? []) {
+      const ms = findText(ep, visual.at, visualMs + 1, endMs);
+      if (ms == null || F(ms) >= end) {
+        errors.push(`${s.id}: 画面「${visual.subject}」的口播锚点「${visual.at}」找不到或顺序不对`);
+        continue;
+      }
+      visualMs = ms;
+      visuals.push({...visual, frame: F(ms) - from});
+    }
     const inShot = ep.cues.filter((c) => c.startMs >= starts[i] - 1 && c.startMs < endMs).map((c) => c.i);
-    return {s, i, from, d: end - from, startMs: starts[i], anchors, cueRange: [inShot[0] ?? -1, inShot[inShot.length - 1] ?? -1]};
+    return {s, i, from, d: end - from, startMs: starts[i], anchors, visuals, cueRange: [inShot[0] ?? -1, inShot[inShot.length - 1] ?? -1]};
   });
   return {items, total, errors};
 };

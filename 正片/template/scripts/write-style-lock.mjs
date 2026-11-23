@@ -9,7 +9,7 @@ const lockPath = resolve(root, 'scripts/style-lock.json');
 const lock = JSON.parse(readFileSync(lockPath, 'utf8'));
 const revision = process.argv[2];
 if (!revision) throw Error('用法：node scripts/write-style-lock.mjs "<revision 说明>"');
-const extra = ['scripts/check-readability.mjs', 'scripts/make-floorplan.mjs', 'scripts/check-card-content.mjs', 'src/style/content-guard.ts', 'src/gallery/shots-delivery.ts', 'scripts/plan-check.mjs', 'src/style/provenance.ts', 'src/opening/openingBeats.ts', 'src/style/placeholder.ts', 'src/style/LightTrail.tsx', 'src/style/CardOrnament.tsx', 'src/style/motion.ts', 'src/style/ornament.ts', 'src/cards51/specs.ts', 'src/images51/specs.ts', 'src/images51/ImageViews.tsx', 'src/match/diversity.ts', 'scripts/image-prompts.mjs'];
+const extra = ['src/demo/Demo.tsx', 'src/sync/timeline.ts', 'scripts/visual-rhythm.mjs', 'scripts/check-layout.mjs', 'src/style/types.ts', 'scripts/check-episode.mjs', 'scripts/check-readability.mjs', 'scripts/make-floorplan.mjs', 'scripts/check-card-content.mjs', 'src/style/content-guard.ts', 'src/gallery/shots-delivery.ts', 'scripts/plan-check.mjs', 'src/style/provenance.ts', 'src/opening/openingBeats.ts', 'src/style/placeholder.ts', 'src/style/LightTrail.tsx', 'src/style/CardOrnament.tsx', 'src/style/motion.ts', 'src/style/ornament.ts', 'src/cards51/specs.ts', 'src/images51/specs.ts', 'src/images51/ImageViews.tsx', 'src/match/diversity.ts', 'scripts/image-prompts.mjs'];
 // 已删除的共用文件（5.1.5：片头改用「小滕片头风格模板」，GlassLight / WarmSkyline 退役）
 const removed = new Set(['src/opening/GlassLight.tsx', 'src/opening/WarmSkyline.tsx']);
 const files = {};

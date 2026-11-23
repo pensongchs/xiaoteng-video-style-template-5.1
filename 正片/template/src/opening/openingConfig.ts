@@ -1,4 +1,4 @@
-// 5.1.5 片头配置（《小滕片头风格模板》：蓝青 ASCII 字符底 + 透明抠像 + 冰蓝银/暖金衬线标题 + 图文左右接力）。
+// 5.1.5 片头配置（《小滕片头风格模板》：蓝青 ASCII 字符底 + 透明抠像 + 冰蓝银主题字与收句红章 + 图文左右接力）。
 // 片头 = 口播第 1 句，只这一句：时长 = 第 1 句口播时长（vo.startMs→vo.endMs），拍点 = 第 1 句里的短语起点；说完立刻切正片。
 // 换期：vo.text 换成本期口播第 1 句；timingMs 换成真实 SRT/逐字时间码的短语起点；cards 换本期透明抠像。plan:check 会核对。
 export const openingConfig = {
@@ -16,7 +16,8 @@ export const openingConfig = {
   },
   "timingMs": {"focus": 340, "turn": 892, "verdict": 1480},
   "text": {"prefix": "看房", "focus": "越多", "turn": "反而越容易", "verdict": "买错"},
-  "warm": ["verdict"],
+  "warm": [],
+  "stamp": {},
   "identity": "极限小滕 房产科普",
   "extra": [],
   "cards": [

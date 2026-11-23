@@ -28,7 +28,7 @@ const resolve = (k: TKind): 'softPush' | 'softZoom' | 'driftDissolve' | 'liftRev
 };
 
 /** 包住一镜：入场按 inT（第 0..dur 帧），退场按 outT（d..d+dur 帧，此时画面已定格） */
-export const Transition: React.FC<{d: number; inT: TSpec | null; outT: TSpec | null; z: number; children: React.ReactNode}> = ({d, inT, outT, z, children}) => {
+export const Transition: React.FC<{d: number; inT: TSpec | null; outT: TSpec | null; z: number; readableStart?: boolean; children: React.ReactNode}> = ({d, inT, outT, z, readableStart = false, children}) => {
   const f = useCurrentFrame();
   let style: React.CSSProperties = {zIndex: z, willChange: 'transform, opacity, filter'};
   let overlay: React.ReactNode = null;
@@ -56,6 +56,7 @@ export const Transition: React.FC<{d: number; inT: TSpec | null; outT: TSpec | n
         transform: `translateY(${(1 - sp) * 56}px) scale(${0.97 + 0.03 * Math.min(sp, 1.06)})`,
         filter: `blur(${Math.max(0, (1 - Math.min(sp, 1)) * 6)}px)`};
     }
+    if (readableStart) style = {...style, opacity: 1, filter: undefined};
   }
 
   if (outT && f >= d) {

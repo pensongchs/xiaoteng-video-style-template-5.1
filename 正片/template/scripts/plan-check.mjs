@@ -21,9 +21,10 @@ import {NEW_LAYOUTS} from '../src/style/layouts.ts';
 import {sceneOf} from '../src/style/scenes.ts';
 import {SEQ_KEY, normalizeSeqAnchors, LINK_GAP, SEQ} from '../src/style/sequence.ts';
 import {LINK_MODE, SEQUENTIAL_LAYOUTS, requiredSeqKeys} from '../src/style/sequence-spec.ts';
-import {buildTimeline, findPhrase, F, ANCHOR_LEAD} from '../src/sync/timeline.ts';
+import {buildTimeline, findText, F, ANCHOR_LEAD} from '../src/sync/timeline.ts';
 import {provenanceFaults} from '../src/style/provenance.ts';
 import {openingFaults, durationMsOf} from '../src/opening/openingBeats.ts';
+import {visualRhythmFaults, VISUAL_RHYTHM} from './visual-rhythm.mjs';
 import {openingConfig} from '../src/opening/openingConfig.ts';
 import {firstSentenceOf} from '../src/opening/openingBeats.ts';
 import {SMALL_LAYOUTS, IMAGE_LAYOUTS} from '../src/style/layouts.ts';
@@ -121,8 +122,21 @@ const selfTest = () => {
   must('饰线不同心', ornamentFaults([4]), /inset/);
   const tk = (t) => [...t].map((c) => ({t: c, s: null, e: null}));
   must('字幕两行', subLineFaults([{lines: [tk('首付之外'), tk('还要留多少')]}]), /强制单行/);
-  must('字幕超宽', subLineFaults([{lines: [tk('这一句台词特别特别长长到一行根本放不下必须在停顿处拆开才行')]}]), /单行宽/);
+  must('字幕超宽', subLineFaults([{lines: [tk('字'.repeat(32))]}]), /单行宽/);
   clean('单行字幕', subLineFaults([{lines: [tk('首付之外 还要留多少')]}]));
+  const rhythmic = (frame, src) => ({frame, subject: src, at: src, mode: 'footage', media: {src, video: true}});
+  const planned = [{s: {id: 'test'}, from: 0, d: 180, visuals: [rhythmic(0,'a'), rhythmic(90,'b')]}];
+  const fakeEpisode = {cues: [{startMs: 0, endMs: 6000}], clips: {a: 6000, b: 6000}};
+  clean('逐句画面表', visualRhythmFaults(planned, fakeEpisode, 0, () => true));
+  must('口播空档', visualRhythmFaults([{...planned[0], visuals:[rhythmic(0,'a')]}], fakeEpisode, 0, () => true), /补画/);
+  must('同素材冒充换画', visualRhythmFaults([{...planned[0], visuals:[rhythmic(0,'a'), rhythmic(90,'a')]}], fakeEpisode, 0, () => true), /同一源素材/);
+  const layoutCuts = planned[0].visuals.map((cut) => ({...cut, mode: 'layout'}));
+  must('镜内更换 MG 背景', visualRhythmFaults([{...planned[0], visuals:layoutCuts}], fakeEpisode, 0, () => true), /同一 MG/);
+  const photoCut = {...planned[0].visuals[1], media:{src:'b'}};
+  must('全屏静图占比过高', visualRhythmFaults([{...planned[0], visuals:[planned[0].visuals[0], photoCut]}], fakeEpisode, 0, () => true), /全屏静图/);
+  clean('全屏静图仅在关键段', visualRhythmFaults([{...planned[0], d:120, visuals:[planned[0].visuals[0], photoCut]}],
+    {...fakeEpisode, cues:[{startMs:0, endMs:4000}]}, 0, () => true));
+  must('素材缺失', visualRhythmFaults(planned, fakeEpisode, 0, (src) => src !== 'b'), /素材不存在/);
   return fails;
 };
 
@@ -145,10 +159,20 @@ for (const it of tl.items) {
 }
 // 5 片头
 {
-  const phraseMs = ep.hasWords ? (a) => findPhrase(ep, a, 0, durationMsOf(openingConfig))?.ms ?? null : undefined;
+  const phraseMs = ep.hasWords ? (a) => findText(ep, a, 0, durationMsOf(openingConfig)) : undefined;
   const c0 = ep.cues?.[0];
   const first = openingConfig.enabled && c0 ? {firstSentence: firstSentenceOf(c0.text), firstSentenceMs: {startMs: c0.startMs, endMs: c0.endMs}} : {};
   for (const e of openingFaults(openingConfig, {phraseMs: openingConfig.enabled ? phraseMs : undefined, ...first})) errors.push(`片头: ${e}`);
+}
+// 逐句画面表：字幕、自然运镜和卡片停留不能充当换素材。
+if (!sample) {
+  const openingFrames = openingConfig.enabled ? F(durationMsOf(openingConfig)) : 0;
+  for (const e of visualRhythmFaults(tl.items, ep, openingFrames, (src) => existsSync(resolve('public', src)))) errors.push(`画面密度: ${e}`);
+  if (!quiet) {
+    const cuts = tl.items.flatMap(({from, visuals}) => visuals.filter(({frame}) => from + frame >= openingFrames));
+    const videoCount = new Set(cuts.filter(({media}) => media.video).map(({media}) => media.src)).size;
+    console.log(`正文 ${cuts.length} 个口播驱动画面，使用 ${videoCount} 段不同源视频；持续口播换画间隔上限 ${VISUAL_RHYTHM.longest} 秒`);
+  }
 }
 // 9 图文节奏
 for (const e of imageRhythmFaults(SHOTS)) if (!errors.some((x) => x.includes(e))) errors.push(`节奏: ${e}`);
@@ -162,7 +186,7 @@ for (const e of imageRhythmFaults(SHOTS)) if (!errors.some((x) => x.includes(e))
   for (const e of motionFaults()) errors.push(`动效: ${e}`);
 }
 // 11 字幕单行
-for (const e of subLineFaults(ep.subs)) errors.push(`字幕: ${e}`);
+for (const e of subLineFaults(openingConfig.enabled ? ep.subs.filter((c) => c.startMs >= openingConfig.vo.endMs) : ep.subs)) errors.push(`字幕: ${e}`);
 // 6 自检
 for (const e of selfTest()) errors.push(e);
 

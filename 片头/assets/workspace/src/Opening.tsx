@@ -1,10 +1,7 @@
-// 5.1.5 片头：按《小滕片头风格模板》（pensongchs/xiaoteng-opening-style-template）——
-//   039 蓝青渐变 ASCII 字符底 + 自然冷调透明住宅抠像 + 冰蓝银（普通重点）/ 暖金（判断/矛盾，只在片头）衬线标题 + 图文左右接力。
-// 片头 = 口播第 1 句：时长、拍点全部来自 openingConfig（vo / timingMs），说完即切正片。
-// 一拍一个焦点：看房（文字左、住宅右）→ 越多（住宅接力加到 3 栋）→ 反而越容易（文字走上弧换到右侧、住宅走下方换到左侧）→ 买错（暖金重点）。
 import React, {useEffect, useState} from 'react';
 import {AbsoluteFill, cancelRender, continueRender, delayRender, Easing, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {openingConfig as config} from './openingConfig';
+import {STAMP, type OpeningLike} from './openingBeats';
 import AsciiGradientBackground from './AsciiGradientBackground';
 
 const clamp = {extrapolateLeft: 'clamp' as const, extrapolateRight: 'clamp' as const};
@@ -15,7 +12,6 @@ const useFonts = () => {
     Promise.all([
       new FontFace('Headline', `url(${staticFile('fonts/JiangChengLvDongSong.ttf')})`, {weight: '400'}).load(),
       new FontFace('Support', `url(${staticFile('fonts/AlibabaHealth-Bold.ttf')})`, {weight: '700'}).load(),
-      new FontFace('Text', `url(${staticFile('fonts/AlibabaHealth-Regular.ttf')})`, {weight: '400'}).load(),
     ]).then((fonts) => { fonts.forEach((font) => document.fonts.add(font)); continueRender(handle); }).catch(cancelRender);
   }, [handle]);
 };
@@ -27,6 +23,8 @@ const Display: React.FC<{children: React.ReactNode; size: number; warm?: boolean
   </div>;
 /** 冷色统一 + 细节增强，保留透明通道（母工程第 3 节）。 */
 const COOL = 'saturate(1.12) contrast(1.10) brightness(1.03)';
+const fit = (text: string, width: number, maxSize: number) =>
+  Math.min(maxSize, Math.floor(width / Math.max(1, [...text].reduce((n, char) => n + (/^[\x00-\x7f]$/.test(char) ? 0.62 : 1), 0))));
 const shadow = 'drop-shadow(0 22px 17px rgba(0,0,0,.34))';
 
 export const Opening: React.FC = () => {
@@ -43,6 +41,11 @@ export const Opening: React.FC = () => {
   const [A, B, C] = config.cards;
   const a = .45 + .55 * enter(0, 300), b = enter(t.focus, 320), c = enter(t.turn + 120, 360);
   const verdict = enter(t.verdict, 180);
+  const stamp = (config as OpeningLike).stamp;
+  const recede = 1 - tween(t.turn, Math.min(400, t.verdict - t.turn));
+  const stampSettle = tween(t.verdict, 180);
+  const stampFont = fit(tx.verdict, STAMP.maxWidth - 2 * STAMP.padding, 120);
+  const stampWidth = Math.min(STAMP.maxWidth, Math.max(270, [...tx.verdict].length * stampFont + 2 * STAMP.padding));
   // 住宅组：右 → 左（下方路径）
   const houseX = 1010 - 930 * swap, houseY = 150 + 40 * swap + 70 * arc, houseS = (1 - .14 * arc) * (1 + .03 * drift);
   // 文字组「看房 / 越多」：左 → 右上（上弧），换位后缩成主题锚点
@@ -62,18 +65,31 @@ export const Opening: React.FC = () => {
         transform: `translateX(${150 * (1 - b)}px) scale(${.92 + .08 * b})`, transformOrigin: '50% 100%', filter: `${COOL} ${shadow}`}} />}
     </div>
 
-    <div data-layer="看房越多" style={{position: 'absolute', left: tX, top: tY, transform: `scale(${tS})`, transformOrigin: '0 0'}}>
-      <Display name={tx.prefix} size={220} warm={warm('prefix')} style={{left: 0, top: 0, opacity: .35 + .65 * enter(0, 200)}}>{tx.prefix}</Display>
-      <Display name={tx.focus} size={220} warm={warm('focus')} style={{left: 0, top: 250, opacity: enter(t.focus, 160), transform: `translateY(${18 * (1 - enter(t.focus, 220))}px)`}}>{tx.focus}</Display>
+    <div data-layer="片头主题" style={{position: 'absolute', left: tX, top: tY, transform: `scale(${tS})`, transformOrigin: '0 0', opacity: recede}}>
+      <Display name={tx.prefix} size={fit(tx.prefix, 790, 220)} style={{left: 0, top: 0}}>{tx.prefix}</Display>
+      <Display name={tx.focus} size={fit(tx.focus, 790, 220)} style={{left: 0, top: 242, opacity: enter(t.focus, 160), transform: `translateY(${18 * (1 - enter(t.focus, 220))}px)`}}>{tx.focus}</Display>
     </div>
-    <div data-layer="反而越容易" style={{position: 'absolute', left: 1040, top: 420, opacity: enter(t.turn + 200, 200), transform: `translateX(${40 * (1 - enter(t.turn + 200, 300))}px)`}}>
-      <Display name={tx.turn} size={128} warm={warm('turn')} style={{left: 0, top: 0}}>{tx.turn}</Display>
-    </div>
-    <div data-layer="买错" style={{position: 'absolute', left: 1030, top: 580, opacity: verdict, transform: `scale(${1.06 - .06 * enter(t.verdict, 260)})`, transformOrigin: '0 50%'}}>
-      <Display name={tx.verdict} size={248} warm={warm('verdict')} style={{left: 0, top: 0}}>{tx.verdict}</Display>
-    </div>
-
-    <div style={{position: 'absolute', right: 108, top: 40, fontFamily: 'Text', fontSize: 30, letterSpacing: 1, color: '#cbd9e2', textShadow: '0 2px 8px #000', display: 'flex', alignItems: 'center', gap: 15}}>
-      <span style={{width: 25, height: 3, background: '#94adbd'}} /><span>{config.identity}</span></div>
+    <Display name={tx.turn} size={fit(tx.turn, 732, 122)} style={{left: 1020, top: stamp?.lead ? 340 : 386,
+      opacity: enter(t.turn, 160), transform: `translateX(${30 * (1 - enter(t.turn, 240))}px)`}}>{tx.turn}</Display>
+    {stamp?.lead && <Display name={stamp.lead.text} size={fit(stamp.lead.text, 732, 88)} style={{
+      left: 1020, top: 475, opacity: enter(stamp.lead.ms, 150),
+    }}>{stamp.lead.text}</Display>}
+    {stamp ? (frame >= f(t.verdict) && <div data-opening-stamp style={{
+      position: 'absolute', left: 1018, top: stamp.lead ? 609 : 547, width: stampWidth, height: 164,
+      opacity: Math.min(1, verdict * 3.2), transformOrigin: '12% 50%',
+      transform: `translateY(${-30 * (1 - stampSettle)}px) scale(${1.08 - .08 * stampSettle}) rotate(${-3 - 3 * (1 - stampSettle)}deg)`,
+      display: 'grid', placeItems: 'center', boxSizing: 'border-box', background: 'linear-gradient(165deg, #AD2739, #89192B)',
+      border: '4px solid #E46E76', borderRadius: 6, boxShadow: '0 8px 20px rgba(16,18,30,.45)',
+    }}>
+      <div aria-hidden style={{position: 'absolute', inset: 7, border: '1px solid #F1A099', borderRadius: 2}} />
+      <span style={{fontFamily: 'Support', fontWeight: 700, fontSize: stampFont, lineHeight: 1, color: '#FFF1E9', whiteSpace: 'nowrap'}}>
+        {tx.verdict}
+      </span>
+    </div>) : <Display name={tx.verdict} size={fit(tx.verdict, 732, 220)} warm={warm('verdict')}
+      style={{left: 1020, top: 540, opacity: verdict}}>{tx.verdict}</Display>}
+    {(config as {identity?: string}).identity && <div style={{position: 'absolute', right: 108, top: 40,
+      fontFamily: 'Support', fontWeight: 700, fontSize: 30, letterSpacing: 1, color: '#cbd9e2', textShadow: '0 2px 8px #000'}}>
+      {config.identity}
+    </div>}
   </AbsoluteFill>;
 };

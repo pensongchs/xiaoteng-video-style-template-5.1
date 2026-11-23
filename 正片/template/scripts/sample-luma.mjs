@@ -30,13 +30,15 @@ export const measureFile = (file, trim = 0) => {
 const table = {};
 const jobs = [];
 for (const s of [...SHOTS, ...NEW_GALLERY, ...OUTRO_INTERACT]) {
-  const src = s.bg?.src;
+  for (const bg of [s.bg, ...(s.visuals ?? []).map(({media}) => media)]) {
+  const src = bg?.src;
   if (!src || table[src] || jobs.includes(src)) continue;
   jobs.push(src);
   const file = 'public/' + src;
-  const got = measureFile(file, s.bg.trim ?? 0);
+  const got = measureFile(file, bg.trim ?? 0);
   if (got) table[src] = got;
   else console.log(`  跳过（文件不在） ${src}`);
+  }
 }
 writeFileSync('src/demo/luma.json', JSON.stringify(table, null, 2) + '\n');
 console.log(`✓ 实测亮度 ${Object.keys(table).length} 段 → src/demo/luma.json`);

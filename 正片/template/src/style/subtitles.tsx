@@ -1,4 +1,4 @@
-// 字幕：底部 180px 字幕安全区内水平居中，强制单行（5.1.5，跟台词节奏一句一组，不自动换行）；5.1 墨蓝半透明胶囊 + 冷白字 + 当前词冰蓝（卡拉 OK），无下划线
+// 字幕：底部 180px 字幕安全区内与 MG 卡片组居中对齐，强制单行（5.1.5，跟台词节奏一句一组，不自动换行）；5.1 墨蓝半透明胶囊 + 冷白字 + 当前词冰蓝（卡拉 OK），无下划线
 import React from 'react';
 import {useCurrentFrame, interpolate, Easing, getInputProps, delayRender, continueRender} from 'remotion';
 import {FONT} from './tokens';
@@ -9,7 +9,7 @@ import {F} from '../sync/timeline.ts';
 import {SUB as SUB0} from './subtitle-tokens.ts';
 export {SUB0 as SUB};
 type SUB = typeof SUB0;
-export type SubOpts = {show?: boolean; highlight?: boolean; bare?: boolean};
+export type SubOpts = {show?: boolean; highlight?: boolean; bare?: boolean; opening?: {endFrame: number; endMs: number}};
 
 export const Subtitles: React.FC<{ep: Episode; opts: SubOpts; tokens?: SUB}> = ({ep, opts, tokens}) => {
   const SUB = tokens ?? SUB0;
@@ -26,8 +26,9 @@ export const Subtitles: React.FC<{ep: Episode; opts: SubOpts; tokens?: SUB}> = (
       const ink = [...ls].map((l) => { const range = document.createRange(); range.selectNodeContents(l); const b = range.getBoundingClientRect(); return Math.round((b.x + b.width / 2) * 10) / 10; });
       console.log(`SUBCHECK|${f}|${JSON.stringify({x: r.x, y: r.y, w: r.width, h: r.height, fs, lines: ls.length, over, ink})}`); }
     continueRender(h); })(); }, [h]);
-  if (opts.show === false) return null;
-  const list = ep.subs;
+  const opening = opts.opening;
+  if (opts.show === false || (opening && f < opening.endFrame)) return null;
+  const list = opening ? ep.subs.filter((cue) => cue.startMs >= opening.endMs) : ep.subs;
   const idx = list.findIndex((c, k) => { const next = list[k + 1];
     const end = next && next.startMs - c.endMs < SUB.holdGapMs ? next.startMs : c.endMs + 120; return ms >= c.startMs && ms < end; });
   if (idx < 0) return null;

@@ -192,8 +192,9 @@ export const GoldText: React.FC<{text: string}> = ({text}) => {
  return <>{text.split(/(\{[^}]+\})/).map((s,i)=>s.startsWith('{')?<span key={i} className="gt" style={{color:HILITE.dark}}>{s.slice(1,-1)}</span>:<span key={i}>{s}</span>)}</>;
 };
 
-export const Headline: React.FC<{text: string; start?: number; plate?: boolean}> = ({text, start = 2}) => {
-  const p=useSpringP(start,SPRING.enter),outside=useOutsideText(),{bright}=React.useContext(ReadabilityCtx);
+export const Headline: React.FC<{text: string; start?: number; plate?: boolean; immediate?: boolean}> = ({text, start = 2, immediate = false}) => {
+  const entered = useSpringP(start, SPRING.enter);
+  const p = immediate ? 1 : entered, outside = useOutsideText(), {bright} = React.useContext(ReadabilityCtx);
   return <div style={{position:'absolute',left:96,top:100,width:1536,height:100,display:'flex',alignItems:'center',opacity:p,transform:`translateY(${(1-p)*22}px)`}}>
     <div data-deco style={{display:'inline-flex',alignItems:'center',height:100,padding:'0 24px',borderRadius:24,background:bright?'linear-gradient(110deg,rgba(14,32,58,.72),rgba(14,32,58,.40))':'linear-gradient(110deg,rgba(23,53,72,.35),rgba(23,53,72,.12))',border:'1px solid rgba(227,246,255,.32)',boxShadow:'0 7px 20px -12px rgba(20,45,60,.28),inset 0 1px 0 rgba(255,255,255,.22)',backdropFilter:'blur(16px)'}}>
       <div style={{fontFamily:FONT.title,fontSize:74,...outside,lineHeight:1.2,whiteSpace:'pre-line'}}><GoldText text={text}/></div>
@@ -225,11 +226,17 @@ export const ExampleMark: React.FC = () => (
 /** 镜头内运镜方向：由 ShotView 注入，背景视差慢于前景 */
 export const CamCtx = React.createContext<{dirX: number; dirY: number; zoom: number; move?: number}>({dirX: 1, dirY: 0, zoom: 1});
 
+/** 随本次素材入画重置背景时钟，前景仍使用原镜头的口播时钟。 */
+export const BackgroundFrameCtx = React.createContext<number | null>(null);
+
 export const Backdrop: React.FC<{src: string; video?: boolean; blur?: number; dark?: number; trimStart?: number;neutral?:boolean}> = ({src, video, blur: _blur = 0, dark = 0.45, trimStart = 0,neutral=false}) => {
   // 背景保留自然色与局部文字保护；开场 neutral 模式不叠暖色罩染。
   const k = neutral?Math.max(.06,dark-.32):Math.max(0.13,dark-.26);
   // 镜头内缓慢运镜（视频+静图）：轻推近 + 沿 CamCtx 方向漂移，制造空间感
-  const cur = useCurrentFrame(); const live = React.useContext(LiveFrameCtx) ?? cur;
+  const cur = useCurrentFrame();
+  const shotFrame = React.useContext(LiveFrameCtx);
+  const mediaFrame = React.useContext(BackgroundFrameCtx);
+  const live = mediaFrame ?? shotFrame ?? cur;
   const cam = React.useContext(CamCtx);
   const t = live / 30; // 秒
   const mv = cam.move ?? 1; // 可选：本期加强运镜（默认 1 = 定版行为）
@@ -240,7 +247,7 @@ export const Backdrop: React.FC<{src: string; video?: boolean; blur?: number; da
   const mediaStyle: React.CSSProperties = {width: '100%', height: '100%', objectFit: 'cover', filter, transform: `scale(${scale}) translate(${tx}px, ${ty}px)`, transformOrigin: '50% 45%'};
   return <AbsoluteFill>
     {video
-      ? <LiveVideo src={src} style={mediaStyle} trimStart={trimStart} />
+      ? <LiveFrameCtx.Provider value={live}><LiveVideo src={src} style={mediaStyle} trimStart={trimStart} /></LiveFrameCtx.Provider>
       : <Img src={staticFile(src)} style={mediaStyle} />}
     <AbsoluteFill style={{background: `rgba(${neutral?'16,22,30':'12,11,10'},${k})`}} />
     {/* 5.0：渐变只留文字一侧（左上标题区）和底部字幕区，中部通透 */}

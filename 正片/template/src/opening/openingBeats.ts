@@ -9,12 +9,14 @@
  *   4) 追加拍（extra）每一拍必须换画面：src（抠像）与上一拍不同；
  *   5) 有真实逐字时间码时，每拍拍点 ≈ 对应口播短语的起点（≤ 3 帧@50fps）。 */
 import {isPlaceholderText} from '../style/placeholder.ts';
+export const STAMP = {maxChars: 9, maxWidth: 732, padding: 34} as const;
 export const OPENING_RULE = {maxHoldMs: 1500, syncTolMs: 60, frameTolMs: 20};
-export type Beat = {ms: number; kw: string; role: 'prefix' | 'focus' | 'turn' | 'verdict' | 'extra'; anchor?: string; src?: string; sub?: string};
+export type Beat = {ms: number; kw: string; role: 'prefix' | 'focus' | 'turn' | 'verdict' | 'lead' | 'extra'; anchor?: string; src?: string; sub?: string};
 export type OpeningLike = {
   fps: number; durationInFrames: number;
   timingMs: {focus: number; turn: number; verdict: number};
   text: {prefix: string; focus: string; turn: string; verdict: string};
+  stamp?: {lead?: {text: string; ms: number; anchor?: string}};
   cards: readonly {src: string; at?: number}[];
   vo?: {text: string; startMs?: number; endMs?: number; anchors?: Partial<Record<'focus' | 'turn' | 'verdict', string>>};
   extra?: readonly {ms: number; kw: string; sub?: string; anchor?: string; src: string}[];
@@ -26,6 +28,7 @@ export const beatsOf = (c: OpeningLike): Beat[] => {
     {ms: 0, kw: c.text.prefix, role: 'prefix', src: c.cards[0]?.src},
     {ms: c.timingMs.focus, kw: c.text.focus, role: 'focus', anchor: a.focus, src: c.cards[1]?.src ?? c.cards[0]?.src},
     {ms: c.timingMs.turn, kw: c.text.turn, role: 'turn', anchor: a.turn, src: c.cards[2]?.src ?? c.cards[1]?.src},
+    ...(c.stamp?.lead ? [{ms:c.stamp.lead.ms, kw:c.stamp.lead.text, role:'lead' as const, anchor:c.stamp.lead.anchor, src:c.cards[2]?.src}] : []),
     {ms: c.timingMs.verdict, kw: c.text.verdict, role: 'verdict', anchor: a.verdict, src: c.cards[2]?.src},
   ];
   return [...base, ...(c.extra ?? []).map((e): Beat => ({ms: e.ms, kw: e.kw, role: 'extra', anchor: e.anchor, src: e.src, sub: e.sub}))];
@@ -43,6 +46,8 @@ export const openingFaults = (c: OpeningLike, opts: {phraseMs?: (anchor: string)
     if (/[。！？!?]/.test(vo.replace(/[。！？!?…]+\s*$/, ''))) errs.push(`片头口播「${vo}」不止一句：片头只用口播第 1 句，后面的句子交给正片`);
     if (opts.firstSentence != null && norm(vo) !== norm(opts.firstSentence)) errs.push(`片头口播「${vo}」≠ 本期口播第 1 句「${opts.firstSentence}」`);
   }
+  if (c.stamp && [...c.text.verdict].length > STAMP.maxChars) errs.push(`红色收句印章最多容纳 ${STAMP.maxChars} 个字符，请保留最关键的短语`);
+  if (c.stamp && opts.phraseMs && !c.vo?.anchors?.verdict) errs.push('红色收句印章须绑定最后一句的重点词起音');
   const span = opts.firstSentenceMs ?? (c.vo?.endMs != null ? {startMs: c.vo.startMs ?? 0, endMs: c.vo.endMs} : null);
   if (!span) errs.push('片头没有登记第 1 句的起止（vo.startMs / vo.endMs）：时长必须 = 第 1 句口播时长');
   else if (Math.abs((span.endMs - span.startMs) - end) > R.frameTolMs) errs.push(`片头时长 ${end}ms ≠ 第 1 句口播 ${span.endMs - span.startMs}ms：片头只覆盖第 1 句，说完就切正片（不拉长静帧、不吃进第 2 句）`);
@@ -60,7 +65,7 @@ export const openingFaults = (c: OpeningLike, opts: {phraseMs?: (anchor: string)
   if (vo) {
     const v = norm(vo);
     beats.forEach((b, i) => { if (!isPlaceholderText(b.kw) && !v.includes(norm(b.kw))) errs.push(`第 ${i + 1} 拍「${b.kw}」不在片头口播（第 1 句）里`); });
-    const joined = norm([c.text.prefix, c.text.focus, c.text.turn, c.text.verdict].join(''));
+    const joined = norm([c.text.prefix, c.text.focus, c.text.turn, c.stamp?.lead?.text ?? '', c.text.verdict].join(''));
     if (!v.includes(joined)) errs.push(`片头主文案「${joined}」与口播第 1 句「${v}」不一致：片头文字必须逐字取自第 1 句`);
     if (opts.phraseMs) for (const b of beats) if (b.anchor) {
       const t = opts.phraseMs(b.anchor);
