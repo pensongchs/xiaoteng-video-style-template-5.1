@@ -1,6 +1,7 @@
 import {F, FPS} from '../src/sync/timeline.ts';
 
-export const VISUAL_RHYTHM = {first: 0.9, longest: 3.2, shortest: 0.3, stillShare: 0.25};
+export const VISUAL_RHYTHM = {first: 0.9, shortest: 0.3, stillShare: 0.25};
+const trimFrames = (media) => Math.round((media.trim ?? 0) * FPS);
 const keyOf = (media) => `${media.src}@${media.trim ?? 0}`;
 const time = (frame) => `${(frame / FPS).toFixed(2)} 秒`;
 
@@ -57,7 +58,7 @@ export const visualRhythmFaults = (items, episode, openingFrames, hasAsset) => {
       if (cut.media.video && (episode.clips[cut.media.src] ?? 0) < ((cut.media.trim ?? 0) + (next - start) / FPS) * 1000) {
         faults.push(`${tag} 视频有效长度不足，无法覆盖这一段口播`);
       }
-      if (start < speechEnd) beats.push({start, cut, tag});
+      if (start < speechEnd) beats.push({start, cut, tag, item});
     });
   }
 
@@ -66,12 +67,15 @@ export const visualRhythmFaults = (items, episode, openingFrames, hasAsset) => {
     faults.push('片头之后缺少及时落画的正文素材');
   }
   const visible = firstVisible < 0 ? [] : beats.slice(firstVisible);
-  visible.forEach(({start, cut, tag}, i) => {
+  visible.forEach(({start, cut, tag, item}, i) => {
     const prev = visible[i - 1];
-    const nextStart = visible[i + 1]?.start ?? speechEnd;
-    if (prev && prev.cut.media.src === cut.media.src) faults.push(`${tag} 连续用同一源素材，不能计为换画`);
+    if (prev && prev.cut.media.src === cut.media.src) {
+      const continues = prev.item !== item && prev.cut.mode === 'layout' && cut.mode === 'layout'
+        && prev.item.from + prev.item.d === item.from && start === item.from
+        && trimFrames(cut.media) === trimFrames(prev.cut.media) + start - prev.start;
+      if (!continues) faults.push(`${tag} 同源背景入点未接续，请核对是否重播或跳画`);
+    }
     if (prev && start - prev.start < F(VISUAL_RHYTHM.shortest * 1000)) faults.push(`${tag} 换画太快，素材来不及看清`);
-    if (narratedFrames(start, nextStart) > F(VISUAL_RHYTHM.longest * 1000)) faults.push(`${tag} 到 ${time(nextStart)} 持续口播超过 ${VISUAL_RHYTHM.longest} 秒，需给新的语义点补画`);
   });
   if (stillFrames > Math.ceil(backgroundFrames * VISUAL_RHYTHM.stillShare)) {
     faults.push(`全屏静图占正文画面 ${Math.round(stillFrames / backgroundFrames * 100)}%，请控制在 ${VISUAL_RHYTHM.stillShare * 100}% 以内；卡内嵌图不计`);

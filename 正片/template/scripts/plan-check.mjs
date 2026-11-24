@@ -24,7 +24,7 @@ import {LINK_MODE, SEQUENTIAL_LAYOUTS, requiredSeqKeys} from '../src/style/seque
 import {buildTimeline, findText, F, ANCHOR_LEAD} from '../src/sync/timeline.ts';
 import {provenanceFaults} from '../src/style/provenance.ts';
 import {openingFaults, durationMsOf} from '../src/opening/openingBeats.ts';
-import {visualRhythmFaults, VISUAL_RHYTHM} from './visual-rhythm.mjs';
+import {visualRhythmFaults} from './visual-rhythm.mjs';
 import {openingConfig} from '../src/opening/openingConfig.ts';
 import {firstSentenceOf} from '../src/opening/openingBeats.ts';
 import {SMALL_LAYOUTS, IMAGE_LAYOUTS} from '../src/style/layouts.ts';
@@ -128,8 +128,14 @@ const selfTest = () => {
   const planned = [{s: {id: 'test'}, from: 0, d: 180, visuals: [rhythmic(0,'a'), rhythmic(90,'b')]}];
   const fakeEpisode = {cues: [{startMs: 0, endMs: 6000}], clips: {a: 6000, b: 6000}};
   clean('逐句画面表', visualRhythmFaults(planned, fakeEpisode, 0, () => true));
-  must('口播空档', visualRhythmFaults([{...planned[0], visuals:[rhythmic(0,'a')]}], fakeEpisode, 0, () => true), /补画/);
-  must('同素材冒充换画', visualRhythmFaults([{...planned[0], visuals:[rhythmic(0,'a'), rhythmic(90,'a')]}], fakeEpisode, 0, () => true), /同一源素材/);
+  const continuous = {...rhythmic(0,'a'), mode: 'layout'};
+  clean('同组连续实景', visualRhythmFaults([{...planned[0], visuals: [continuous]}], fakeEpisode, 0, () => true));
+  must('开口后没有及时落画', visualRhythmFaults([{...planned[0], visuals: [{...continuous, frame: 45}]}], fakeEpisode, 0, () => true), /开口后等画面/);
+  const nextGroup = {s: {id: 'next'}, from: 90, d: 90,
+    visuals: [{...continuous, media: {...continuous.media, trim: 3}}]};
+  const consecutive = [{...planned[0], d: 90, visuals: [continuous]}, nextGroup];
+  clean('相邻组同源接播', visualRhythmFaults(consecutive, fakeEpisode, 0, () => true));
+  must('相邻组同源重播', visualRhythmFaults([consecutive[0], {...nextGroup, visuals: [continuous]}], fakeEpisode, 0, () => true), /同源背景入点未接续/);
   const layoutCuts = planned[0].visuals.map((cut) => ({...cut, mode: 'layout'}));
   must('镜内更换 MG 背景', visualRhythmFaults([{...planned[0], visuals:layoutCuts}], fakeEpisode, 0, () => true), /同一 MG/);
   const photoCut = {...planned[0].visuals[1], media:{src:'b'}};
@@ -164,14 +170,14 @@ for (const it of tl.items) {
   const first = openingConfig.enabled && c0 ? {firstSentence: firstSentenceOf(c0.text), firstSentenceMs: {startMs: c0.startMs, endMs: c0.endMs}} : {};
   for (const e of openingFaults(openingConfig, {phraseMs: openingConfig.enabled ? phraseMs : undefined, ...first})) errors.push(`片头: ${e}`);
 }
-// 逐句画面表：字幕、自然运镜和卡片停留不能充当换素材。
+// 按口播核对画面锚点、素材覆盖和组内背景。
 if (!sample) {
   const openingFrames = openingConfig.enabled ? F(durationMsOf(openingConfig)) : 0;
   for (const e of visualRhythmFaults(tl.items, ep, openingFrames, (src) => existsSync(resolve('public', src)))) errors.push(`画面密度: ${e}`);
   if (!quiet) {
     const cuts = tl.items.flatMap(({from, visuals}) => visuals.filter(({frame}) => from + frame >= openingFrames));
     const videoCount = new Set(cuts.filter(({media}) => media.video).map(({media}) => media.src)).size;
-    console.log(`正文 ${cuts.length} 个口播驱动画面，使用 ${videoCount} 段不同源视频；持续口播换画间隔上限 ${VISUAL_RHYTHM.longest} 秒`);
+    console.log(`正文 ${cuts.length} 个口播驱动画面，使用 ${videoCount} 段不同源视频`);
   }
 }
 // 9 图文节奏
