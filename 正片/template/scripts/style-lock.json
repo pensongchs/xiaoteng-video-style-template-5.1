@@ -34,7 +34,7 @@
     "src/style/components.tsx": "861137b0b729d34b2faaf0918def73f94fba261a971d296dda0a7ae3b09c03aa",
     "src/style/connections.ts": "7c828c6f51f9a0027fa0ae304daddf9ce49d9b94105b6ff33adb7d706eb5f4f0",
     "src/style/content-guard.ts": "04f6f374499bd5fd4dcaf9488f411fc1d7febb136246250a344c39f3ef1886b4",
-    "src/style/domcheck.tsx": "49baa2a78219e600b21e7328b9aeeb92962c1c490f951d63a6fa3dd4b5307aa9",
+    "src/style/domcheck.tsx": "c02b23e31204630aba9fdfb1289e4a2b3eca571d2a6c36238c0fc8fd6d18ba11",
     "src/style/floorplans.ts": "726b89b988b607674a631fdbd9d3a9ce96e01af626bd1801ac7a87448226d6e3",
     "src/style/geom.ts": "1638dc30e153a68afdb58f5261be1322e4c5d5ed588940f378b899e43c0f7375",
     "src/style/grid.ts": "cfed0823735eef8288b29dd992fae58758c2fdf9263fc1010ac42c4d7dce0e88",

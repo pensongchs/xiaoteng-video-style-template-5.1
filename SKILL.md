@@ -16,6 +16,8 @@ description: 使用小滕视频风格模板5.1制作、修改极限小滕的片�
 3. 正片再读 [版式目录](正片/references/版式目录.md)、[MG 选用规则](正片/references/文案匹配机制.md)、[素材规则](正片/references/素材与生图规则.md)；片头读 [片头制作说明](片头/制作说明.md)。
 4. 操作步骤见 [QUICKSTART.md](QUICKSTART.md)。
 
+**正片制作前先定小卡排版。** 小卡主词和副句分别以卡片的水平中心对齐，等宽卡里的短词也各自居中。数字与单位作为一行整体居中，带图卡的说明在图片区下方居中。
+
 ## 执行边界
 
 - 将安装目录记作 `SKILL_ROOT`，单期目录记作 `PROJECT_ROOT`。已有工程直接续接；没有时用 `node SKILL_ROOT/scripts/create-project.mjs PROJECT_ROOT` 建立完整工程。默认放用户工作目录，不得在 Skill 内制作或缓存单期内容。
