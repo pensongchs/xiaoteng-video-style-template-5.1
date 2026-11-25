@@ -59,7 +59,7 @@ export const SpecCard: React.FC<{c: CardSpec; at: number; active?: number}> = ({
   const [m, s] = [c.texts.find((t) => t.role === 'main'), c.texts.find((t) => t.role === 'sub')];
   const pad = c.img ? `0 0 ${c.padY}px` : `${c.padY}px ${c.padX}px`;
   return <Tile id={c.key} x={c.x} y={c.y} w={c.w} h={c.h} tone={c.tone} at={at} size={c.size} from={c.dir} motion={c.motion} r={c.radius} pad={pad} active={active}
-    style={c.pill ? {alignItems: 'center'} : c.img ? {justifyContent: 'flex-end', alignItems: 'center'} : undefined}>
+    style={{alignItems: 'center', textAlign: 'center', ...(c.img ? {justifyContent: 'flex-end'} : {})}}>
     {c.img && <div data-media style={{position: 'absolute', left: 0, top: 0, right: 0, height: c.imgH, overflow: 'hidden', borderRadius: `${c.radius}px ${c.radius}px 0 0`}}>
       <Img src={staticFile(c.img)} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
       <div style={{position: 'absolute', inset: 0, background: `linear-gradient(180deg, transparent 55%, ${IMG_FRAME.capFade})`}} /></div>}

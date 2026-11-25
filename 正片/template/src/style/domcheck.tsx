@@ -51,6 +51,20 @@ export const DomCheck: React.FC<{id: string; zones: Record<string, Rect>}> = ({i
         if (lines > 1) { const bcs = getComputedStyle(blk); const lh = bcs.lineHeight === 'normal' ? 1.2 : parseFloat(bcs.lineHeight) / parseFloat(bcs.fontSize);
           if (lh < RULE.lineHeight - 0.01) errs.push(`多行行高 ${lh.toFixed(2)} < ${RULE.lineHeight}「${(blk.textContent || '').slice(0, 12)}」`); }
       }
+      // 小卡定格：按实际字符范围核对每行，将数字与单位视为同一行。
+      document.querySelectorAll('[data-card][data-card-key]').forEach((card) => {
+        const box = card.getBoundingClientRect();
+        const style = getComputedStyle(card);
+        if (box.width <= 0 || Number(style.opacity) < 0.99 || style.transform !== 'none') return;
+        const center = (box.left + box.right) / 2;
+        for (const line of card.children) {
+          if (line.matches('[data-deco],[data-media]')) continue;
+          const text = union(textRects(line));
+          if (text && Math.abs((text.l + text.r) / 2 - center) > 2) {
+            errs.push(`小卡文字未水平居中「${(line.textContent ?? '').trim().slice(0, 12)}」`);
+          }
+        }
+      });
       document.querySelectorAll('[data-fit]').forEach((c) => {
         const box = c.getBoundingClientRect(); const target = c.querySelector('[data-fit-text]') ?? c; const u = union(textRects(target));
         if (!u) return; const ratio = (u.r - u.l) / box.width;
